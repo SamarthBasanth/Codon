@@ -1,0 +1,385 @@
+// Codon — Phase 2 data model (the schema everything else depends on).
+//
+// This is the canonical blueprint. Today the app reads the in-memory dataset via
+// src/server/methods.ts; to go live, point DATABASE_URL at a Postgres instance
+// (free Neon/Supabase or local Docker), run `prisma migrate dev`, `prisma db seed`,
+// then change the bodies of src/server/methods.ts to query Prisma. Nothing else
+// in the app needs to change — the service layer is the only seam.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- Enums
+
+enum Role {
+  INDIVIDUAL
+  LAB_MEMBER
+  INSTITUTION_ADMIN
+}
+
+enum MembershipRole {
+  MEMBER
+  PI
+  ADMIN
+}
+
+enum SellerType {
+  LAB
+  INDIVIDUAL
+  INSTITUTION
+}
+
+enum InstitutionKind {
+  UNIVERSITY
+  RESEARCH_INSTITUTE
+  MEDICAL_CENTER
+  COMPANY
+}
+
+enum MethodStatus {
+  DRAFT
+  VERIFYING
+  PUBLISHED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  EXTERNAL_DEP
+  FAILED
+}
+
+enum LicenseType {
+  OPEN
+  DUAL
+  COMMERCIAL
+  SPONSORED
+}
+
+enum PricingModel {
+  FREE
+  DUAL
+  PAID
+  SPONSORED
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum ToolKind {
+  PROPRIETARY
+  OPEN
+  RUNTIME
+  GPU
+}
+
+enum ArtifactKind {
+  CODE
+  ENV
+  INPUT
+  EXPECTED_OUTPUT
+  DOC
+  CONFIG
+}
+
+enum ToleranceKind {
+  EXACT
+  NUMERIC
+  STRUCTURAL
+  CHECKSUM
+}
+
+// ---------------------------------------------------------------- Identity
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String
+  role          Role         @default(INDIVIDUAL)
+  orcid         String?      @unique
+  orcidVerified Boolean      @default(false)
+  emailVerified Boolean      @default(false)
+  avatar        String?
+  bio           String?
+  memberships   Membership[]
+  ownedMethods  Method[]     @relation("MethodOwner")
+  messages      Message[]
+  reviews       Review[]
+  purchases     Purchase[]
+  createdAt     DateTime     @default(now())
+}
+
+model Institution {
+  id        String          @id @default(cuid())
+  slug      String          @unique
+  name      String
+  short     String
+  kind      InstitutionKind
+  location  String
+  website   String?
+  accent    String?
+  blurb     String?
+  verified  Boolean         @default(false)
+  labs      Lab[]
+  methods   Method[]
+  createdAt DateTime        @default(now())
+}
+
+model Lab {
+  id            String       @id @default(cuid())
+  slug          String       @unique
+  name          String
+  type          SellerType   @default(LAB)
+  pi            String
+  orcid         String?
+  bio           String?
+  location      String?
+  verified      Boolean      @default(false)
+  institution   Institution  @relation(fields: [institutionId], references: [id])
+  institutionId String
+  methods       Method[]
+  memberships   Membership[]
+  createdAt     DateTime     @default(now())
+}
+
+model Membership {
+  id     String         @id @default(cuid())
+  user   User           @relation(fields: [userId], references: [id])
+  userId String
+  lab    Lab?           @relation(fields: [labId], references: [id])
+  labId  String?
+  role   MembershipRole @default(MEMBER)
+
+  @@unique([userId, labId])
+}
+
+// ---------------------------------------------------------------- Methods
+
+model Method {
+  id               String                    @id @default(cuid())
+  slug             String                    @unique
+  title            String
+  summary          String
+  description      String
+  readme           String?
+  fields           String[]
+  organisms        String[]
+  dataTypes        String[]
+  language         String
+  status           MethodStatus              @default(DRAFT)
+  paperDoi         String?
+  paperTitle       String?
+  codonId          String                    @unique
+  featured         Boolean                   @default(false)
+
+  owner            User?                     @relation("MethodOwner", fields: [ownerId], references: [id])
+  ownerId          String?
+  lab              Lab                       @relation(fields: [labId], references: [id])
+  labId            String
+  institution      Institution               @relation(fields: [institutionId], references: [id])
+  institutionId    String
+
+  currentVersion   MethodVersion?            @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  currentVersionId String?                   @unique
+  versions         MethodVersion[]           @relation("MethodVersions")
+
+  externalTools    ExternalToolRequirement[]
+  license          License?
+  pricing          Pricing?
+  reviews          Review[]
+  usage            UsageStat?
+  citations        Citation[]
+  executions       ExecutionRun[]
+  purchases        Purchase[]
+  threads          Thread[]
+
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+}
+
+model MethodVersion {
+  id                 String             @id @default(cuid())
+  method             Method             @relation("MethodVersions", fields: [methodId], references: [id])
+  methodId           String
+  semver             String
+  changelog          String?
+  manifest           Json?
+  imageDigest        String?
+  inputHash          String?
+  expectedOutputHash String?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  artifacts          Artifact[]
+  verificationRuns   VerificationRun[]
+  currentFor         Method?            @relation("CurrentVersion")
+  createdAt          DateTime           @default(now())
+
+  @@unique([methodId, semver])
+}
+
+model ExternalToolRequirement {
+  id          String   @id @default(cuid())
+  method      Method   @relation(fields: [methodId], references: [id])
+  methodId    String
+  name        String
+  version     String
+  kind        ToolKind
+  licenseNote String?
+}
+
+model Artifact {
+  id        String        @id @default(cuid())
+  version   MethodVersion @relation(fields: [versionId], references: [id])
+  versionId String
+  kind      ArtifactKind
+  path      String
+  storageRef String
+  sizeBytes BigInt?
+  sha256    String?
+}
+
+// ---------------------------------------------------------------- Verification
+
+model VerificationRun {
+  id              String             @id @default(cuid())
+  version         MethodVersion      @relation(fields: [versionId], references: [id])
+  versionId       String
+  status          VerificationStatus @default(PENDING)
+  verifierVersion String
+  baseImage       String?
+  imageDigest     String?
+  inputHash       String?
+  expectedHash    String?
+  actualHash      String?
+  toleranceProfile String?
+  runExitCode     Int?
+  runWallSec      Int?
+  peakMemoryMb    Int?
+  buildLog        Json?
+  diff            Json?
+  resourceLimits  Json?
+  notes           String?
+  startedAt       DateTime           @default(now())
+  finishedAt      DateTime?
+}
+
+// ---------------------------------------------------------------- Execution (buyer runs)
+
+model ExecutionRun {
+  id         String          @id @default(cuid())
+  method     Method          @relation(fields: [methodId], references: [id])
+  methodId   String
+  buyer      User?           @relation(fields: [buyerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "exec_buyer_fk")
+  buyerId    String?
+  status     ExecutionStatus @default(QUEUED)
+  inputRef   String?
+  outputRef  String?
+  costUsd    Decimal         @default(0)
+  cpuSeconds Int             @default(0)
+  startedAt  DateTime        @default(now())
+  finishedAt DateTime?
+}
+
+// ---------------------------------------------------------------- Licensing & payments
+
+model License {
+  id       String      @id @default(cuid())
+  method   Method      @relation(fields: [methodId], references: [id])
+  methodId String      @unique
+  type     LicenseType
+  spdx     String?
+  name     String
+  terms    String
+}
+
+model Pricing {
+  id               String       @id @default(cuid())
+  method           Method       @relation(fields: [methodId], references: [id])
+  methodId         String       @unique
+  model            PricingModel
+  currency         String       @default("USD")
+  commercialAmount Decimal?
+  amount           Decimal?
+  runAmount        Decimal?
+  unit             String?
+  sponsoredBy      String?
+}
+
+model Purchase {
+  id         String   @id @default(cuid())
+  method     Method   @relation(fields: [methodId], references: [id])
+  methodId   String
+  buyer      User     @relation(fields: [buyerId], references: [id])
+  buyerId    String
+  kind       String // "purchased" | "academic" | "sponsored"
+  amount     Decimal  @default(0)
+  acquiredAt DateTime @default(now())
+
+  @@unique([methodId, buyerId])
+}
+
+// ---------------------------------------------------------------- Messaging
+
+model Thread {
+  id        String    @id @default(cuid())
+  method    Method?   @relation(fields: [methodId], references: [id])
+  methodId  String?
+  subject   String?
+  messages  Message[]
+  createdAt DateTime  @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  thread    Thread   @relation(fields: [threadId], references: [id])
+  threadId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  senderId  String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------- Social / stats
+
+model Review {
+  id        String   @id @default(cuid())
+  method    Method   @relation(fields: [methodId], references: [id])
+  methodId  String
+  author    User?    @relation(fields: [authorId], references: [id])
+  authorId  String?
+  authorName String
+  affiliation String?
+  rating    Int
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model UsageStat {
+  id        String @id @default(cuid())
+  method    Method @relation(fields: [methodId], references: [id])
+  methodId  String @unique
+  runs      Int    @default(0)
+  downloads Int    @default(0)
+  stars     Int    @default(0)
+  citations Int    @default(0)
+}
+
+model Citation {
+  id        String   @id @default(cuid())
+  method    Method   @relation(fields: [methodId], references: [id])
+  methodId  String
+  citingDoi String
+  citingTitle String?
+  year      Int?
+}
