@@ -21,6 +21,33 @@ section[data-hero]{min-height:92vh!important;}
 [data-hero] [data-stage]{height:580px!important;}
 @media(max-width:1100px){[data-hero] h1{font-size:clamp(44px,6vw,72px)!important;}}
 @media(max-width:900px){section[data-hero]{min-height:auto!important;}[data-hero] [data-card-enter]{width:340px!important;}[data-hero] h1{font-size:clamp(40px,9vw,56px)!important;}}
+
+/* ── The verified-badge "hook": illuminated 3D insert ───────────────────── */
+[data-screen-label="Embed the badge"]{position:relative;overflow:hidden;}
+[data-screen-label="Embed the badge"]::before{
+  content:"";position:absolute;left:-10%;right:-10%;top:-30%;height:420px;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(38% 60% at 28% 42%,rgba(46,58,110,.30),transparent 70%),
+    radial-gradient(40% 60% at 72% 52%,rgba(63,122,82,.26),transparent 70%),
+    radial-gradient(30% 50% at 52% 64%,rgba(154,123,51,.24),transparent 70%);
+  filter:blur(34px);animation:codonAurora 9s ease-in-out infinite;
+}
+[data-screen-label="Embed the badge"] > *{position:relative;z-index:1;}
+@keyframes codonAurora{0%,100%{transform:translateX(-4%) scale(1);opacity:.7}50%{transform:translateX(4%) scale(1.08);opacity:1}}
+[data-screen-label="Embed the badge"] img[alt="Verified by Codon"]{
+  height:54px!important;transform-style:preserve-3d;
+  filter:drop-shadow(0 10px 26px rgba(46,58,110,.45));
+  animation:codonBadge3D 7s ease-in-out infinite;
+}
+@keyframes codonBadge3D{
+  0%,100%{transform:perspective(700px) rotateY(-16deg) rotateX(5deg) translateY(0)}
+  50%{transform:perspective(700px) rotateY(16deg) rotateX(-4deg) translateY(-7px)}
+}
+[data-screen-label="Embed the badge"] #badge-snippet{box-shadow:0 12px 40px -18px rgba(46,58,110,.5);}
+@media(prefers-reduced-motion:reduce){
+  [data-screen-label="Embed the badge"]::before,
+  [data-screen-label="Embed the badge"] img[alt="Verified by Codon"]{animation:none!important;}
+}
 `;
 
 /**

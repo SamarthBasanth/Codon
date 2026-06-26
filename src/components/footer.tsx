@@ -45,8 +45,8 @@ export function Footer() {
           <div className="col-span-2">
             <Logo />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              The verified marketplace and reproducibility layer for computational research
-              software. Starting with computational biology.
+              The integrity layer for science — verifying that research code, data, and citations
+              hold up before they&apos;re published, cited, or trained on.
             </p>
           </div>
           {columns.map((col) => (

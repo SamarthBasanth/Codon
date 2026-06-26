@@ -2,12 +2,22 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import {
   ArrowRight,
+  BookOpen,
+  Bot,
   Boxes,
+  Building2,
   Check,
   Cpu,
+  Database,
+  FileWarning,
   Fingerprint,
+  FlaskConical,
   GitCompare,
+  KeyRound,
+  Link2,
   Lock,
+  Package,
+  Quote,
   ScanLine,
   ShieldCheck,
   Stamp,
@@ -19,9 +29,9 @@ import { EmbedBadge } from "@/components/embed-badge";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "How verification works",
+  title: "The integrity layer for science",
   description:
-    "How Codon independently verifies a computational method: containerize, run in a sealed sandbox, diff against the declared output within typed tolerances, and stamp it with a citable Codon ID.",
+    "Codon independently verifies research artifacts — code, datasets, and citations — so journals, labs, and AI systems can separate verified science from noise. Code reproducibility is live today; citation and dataset checks ship as Codon Preflight.",
 };
 
 const STAGES = [
@@ -38,35 +48,208 @@ const TOLERANCES = [
   { kind: "Checksum", desc: "Content hash for binaries after canonicalization." },
 ];
 
+const CHECKS = [
+  { icon: Cpu, t: "Code reproduces", d: "The method runs in a sealed sandbox and reproduces its declared output.", live: true },
+  { icon: Fingerprint, t: "Outputs are stamped", d: "Image digest + input/expected/actual hashes, content-addressed and citable.", live: true },
+  { icon: Database, t: "Datasets exist & match", d: "Referenced data is reachable and matches what the paper claims.", live: false },
+  { icon: Quote, t: "Citations are real", d: "References resolve and actually support the claim they're attached to.", live: false },
+  { icon: FileWarning, t: "Retractions flagged", d: "Retracted or suspicious sources are caught before reuse.", live: false },
+  { icon: Link2, t: "Broken repos caught", d: "Dead GitHub links and missing dependencies are detected.", live: false },
+];
+
+const AUDIENCES = [
+  { icon: BookOpen, t: "Journals", d: "Catch fake citations, broken repositories, and missing datasets before peer review." },
+  { icon: FlaskConical, t: "Researchers", d: "Pre-flight a paper before submission — fix what won't reproduce, with a clean report." },
+  { icon: Building2, t: "Universities & funders", d: "Audit whether published outputs are actually reproducible." },
+  { icon: Bot, t: "AI labs", d: "Filter scientific sources for retrieval, fine-tuning, and AI-safe training corpora." },
+];
+
+const PREFLIGHT = [
+  "Citation validity report (references resolve and support the claim)",
+  "Retraction & suspicious-source warnings",
+  "Claim ↔ source mismatch flags",
+  "Dataset availability report",
+  "Code reproducibility score (live today)",
+  "Reviewer-ready integrity summary",
+];
+
 export default function VerificationPage() {
   return (
     <div>
       {/* Hero */}
       <section className="border-b border-border">
         <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">The verification pipeline</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">The integrity layer for science</p>
           <h1 className="mt-3 text-balance font-serif text-4xl font-normal leading-tight tracking-tight sm:text-5xl">
-            How a method becomes a verified specimen
+            Trust, before it&apos;s published, cited, or trained on.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Every listing on Codon is independently reproduced before it&apos;s published. Four stages
-            turn a folder of code into a citable, reproducible artifact — and the badge is backed by a
-            real execution anyone can inspect.
+            Science is being flooded with unverifiable code, missing datasets, and fake citations — and
+            AI now learns from all of it. Codon independently verifies research artifacts so journals,
+            labs, and AI systems can separate verified science from noise.
+          </p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Live today:</span> real, sandboxed{" "}
+            <span className="text-foreground">code reproducibility</span> verification.{" "}
+            <span className="font-medium text-foreground">Rolling out:</span> citation, dataset, and
+            retraction checks (Codon Preflight).
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link href="/upload" className={cn(buttonVariants({ size: "lg" }))}>
-              List a method
+              Verify a method
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/browse" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
-              Browse verified methods
+            <Link href="#preflight" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
+              See Codon Preflight
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* What Codon checks — honest live vs roadmap */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mb-8 max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">The full research artifact</p>
+          <h2 className="mt-3 font-serif text-3xl font-normal tracking-tight sm:text-4xl">
+            Not just code — the whole claim
+          </h2>
+          <p className="mt-4 leading-relaxed text-muted-foreground">
+            A paper is only as trustworthy as the evidence under it. Codon checks each piece and produces
+            an integrity report: what&apos;s verified, what&apos;s missing, and what can&apos;t be trusted.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {CHECKS.map((c) => (
+            <div key={c.t} className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center justify-between">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-muted text-brand">
+                  <c.icon className="h-4.5 w-4.5" />
+                </span>
+                {c.live ? (
+                  <Badge variant="brand">Live</Badge>
+                ) : (
+                  <span className="rounded-full border border-border px-2 py-0.5 text-xs text-subtle">
+                    Preflight · soon
+                  </span>
+                )}
+              </div>
+              <h3 className="mt-3 font-medium">{c.t}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{c.d}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-5 text-sm text-muted-foreground">
+          We&apos;re honest about scope: <span className="text-foreground">code reproducibility is real and
+          running now</span> (every badge is backed by a live sandbox execution). Citation, dataset, and
+          retraction checks ship as <span className="text-foreground">Codon Preflight</span>.
+        </p>
+      </section>
+
+      {/* Who it's for */}
+      <section className="border-y border-border bg-surface/40">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mb-8 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Who it&apos;s for</p>
+            <h2 className="mt-3 font-serif text-3xl font-normal tracking-tight sm:text-4xl">
+              One trust layer, four angles
+            </h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {AUDIENCES.map((a) => (
+              <div key={a.t} className="rounded-2xl border border-border bg-card p-6">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-muted text-brand">
+                  <a.icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 font-semibold">{a.t}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{a.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Codon Preflight */}
+      <section id="preflight" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Codon Preflight</p>
+              <span className="rounded-full border border-border px-2 py-0.5 text-xs text-subtle">In development</span>
+            </div>
+            <h2 className="mt-3 font-serif text-3xl font-normal tracking-tight sm:text-4xl">
+              A manuscript integrity scan
+            </h2>
+            <p className="mt-4 leading-relaxed text-muted-foreground">
+              Upload a paper, repo, or dataset. Preflight validates the references, datasets, and code
+              before publication and returns a reviewer-ready trust report — so reviewers and journals
+              don&apos;t have to audit every claim by hand.
+            </p>
+            <Link href="/upload" className={cn(buttonVariants(), "mt-6")}>
+              Try code verification today
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h3 className="mb-4 text-sm font-semibold">Integrity report includes</h3>
+            <ul className="space-y-3 text-sm">
+              {PREFLIGHT.map((p) => (
+                <li key={p} className="flex items-start gap-3">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                  <span className="text-muted-foreground">{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Licensing — the upside (revenue) */}
+      <section className="border-y border-border bg-surface/40">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">The upside</p>
+              <h2 className="mt-3 font-serif text-3xl font-normal tracking-tight sm:text-4xl">
+                Verified science becomes a licensable asset
+              </h2>
+              <p className="mt-4 leading-relaxed text-muted-foreground">
+                Trust is the product; licensing is the revenue. Once an artifact is verified it isn&apos;t
+                just citable — it&apos;s reusable. Codon packages high-value verified code and datasets for
+                reuse, licensing, and AI-safe training corpora. Everything is free by Codon today; paid
+                and commercial licensing turn on as the catalog grows.
+              </p>
+              <Link href="/browse" className={cn(buttonVariants({ variant: "outline" }), "mt-6")}>
+                Browse verified methods
+              </Link>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                { icon: KeyRound, t: "License for reuse" },
+                { icon: Package, t: "Package datasets" },
+                { icon: Bot, t: "AI-safe corpora" },
+              ].map((x) => (
+                <div key={x.t} className="rounded-2xl border border-border bg-card p-5 text-center">
+                  <x.icon className="mx-auto h-5 w-5 text-brand" />
+                  <p className="mt-3 text-sm font-medium">{x.t}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Pipeline */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mb-8 max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Live today</p>
+          <h2 className="mt-3 font-serif text-3xl font-normal tracking-tight sm:text-4xl">
+            How code verification works
+          </h2>
+          <p className="mt-4 leading-relaxed text-muted-foreground">
+            The piece that&apos;s real and running now: four stages turn a folder of code into a citable,
+            reproducible artifact — backed by an execution anyone can inspect.
+          </p>
+        </div>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {STAGES.map((s) => (
             <div key={s.step} className="relative rounded-2xl border border-border bg-card p-6">

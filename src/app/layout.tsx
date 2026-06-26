@@ -43,11 +43,11 @@ const jbMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Codon — the verified marketplace for computational methods",
+    default: "Codon — the integrity layer for science",
     template: "%s · Codon",
   },
   description:
-    "Codon turns fragile paper code into verified, reproducible, licensable scientific software — with provenance journals can trust. The App Store for expert-built computational methods, starting with computational biology.",
+    "Codon independently verifies research artifacts — code, datasets, and citations — so journals, labs, and AI systems can separate verified science from noise. Code reproducibility is live today; citation and dataset checks ship as Codon Preflight.",
 };
 
 export default function RootLayout({
