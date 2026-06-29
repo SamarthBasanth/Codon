@@ -25,6 +25,7 @@ import { VerifiedBadge } from "@/components/verified-badge";
 import { ProvenanceBlock } from "@/components/provenance-block";
 import { LicensePanel } from "@/components/license-panel";
 import { CitationBlock } from "@/components/citation-block";
+import { EmbedBadge } from "@/components/embed-badge";
 import { ExternalToolChip } from "@/components/external-tool-chip";
 import { FileTree } from "@/components/file-tree";
 import { CodeBlock } from "@/components/code-block";
@@ -315,6 +316,21 @@ export default async function MethodPage({
               Cite this method
             </h2>
             <CitationBlock method={method} seller={seller} />
+          </section>
+
+          {/* Embed the verified badge */}
+          <section className="border-t border-border pt-8">
+            <h2 className="mb-1.5 flex items-center gap-2 font-semibold">
+              <BadgeCheck className="h-4 w-4 text-brand" />
+              Embed the badge
+            </h2>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Drop the live reproducibility badge for{" "}
+              <span className="font-medium text-foreground">{method.title}</span> into a README or
+              paper. It links back to this verification report and flips if the method ever stops
+              reproducing.
+            </p>
+            <EmbedBadge slug={method.slug} />
           </section>
         </div>
 
