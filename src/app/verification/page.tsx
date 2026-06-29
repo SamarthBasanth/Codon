@@ -25,6 +25,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BadgeMint } from "@/components/badge-mint";
+import { BadgeOrbit } from "@/components/badge-orbit";
 import { EmbedBadge } from "@/components/embed-badge";
 import { cn } from "@/lib/utils";
 
@@ -266,6 +267,19 @@ export default function VerificationPage() {
 
       {/* The badge */}
       <section id="badge" className="scroll-mt-20 border-y border-border bg-surface/40">
+        <div className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+              The badge, in 3D
+            </p>
+            <p className="mt-3 font-serif text-2xl font-normal tracking-tight text-muted-foreground sm:text-3xl">
+              A verified stamp that travels with the research.
+            </p>
+          </div>
+          <div className="mt-8">
+            <BadgeOrbit />
+          </div>
+        </div>
         <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">The badge</p>
