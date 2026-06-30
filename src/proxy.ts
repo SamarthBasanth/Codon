@@ -1,11 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Auth gate. Personal + write surfaces (dashboard, profile, upload) and the
- * rest of the catalog browse experience require a signed-in session. Public:
- * the landing, sign-in/OAuth callback, public profiles (/u/*), the live badge
- * SVG, and — so a Codon badge can "travel" into any README or paper — method
- * detail and verification reports (/methods/*). This is an optimistic
+ * Auth gate. Only personal + write surfaces require a signed-in session:
+ * the dashboard, profile editor, and upload. Everything public-facing is open
+ * so a Codon badge can "travel" into any README or paper and anyone — a
+ * journal, reviewer, or reader — can follow it without an account: the landing,
+ * sign-in/OAuth callback, the catalog (/browse), method detail + verification
+ * reports (/methods/*), lab and institution pages (/labs/*, /institutions/*),
+ * public profiles (/u/*), and the live badge SVG. This is an optimistic
  * cookie-presence check (the cookie is only set by a real sign-in); the actual
  * token is validated server-side wherever it matters, and license/run actions
  * still require a real session.
@@ -23,10 +25,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/browse",
-    "/browse/:path*",
-    "/labs/:path*",
-    "/institutions/:path*",
     "/dashboard/:path*",
     "/profile",
     "/upload",
