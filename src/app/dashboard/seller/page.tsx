@@ -134,46 +134,86 @@ export default async function DashboardOverview() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-subtle">
-                  <tr>
-                    <th className="px-5 py-2.5 font-medium">Method</th>
-                    <th className="px-5 py-2.5 font-medium">Status</th>
-                    <th className="px-5 py-2.5 font-medium">Codon ID</th>
-                    <th className="px-5 py-2.5 font-medium">Runs</th>
-                    <th className="px-5 py-2.5 font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {methods.map((m) => (
-                    <tr key={m.id} className="hover:bg-muted/30">
-                      <td className="px-5 py-3">
-                        <Link href={`/methods/${m.slug}`} className="font-medium hover:text-brand">
+            <>
+              {/* Mobile: stacked cards (the table scrolls sideways on phones) */}
+              <ul className="divide-y divide-border sm:hidden">
+                {methods.map((m) => (
+                  <li key={m.id} className="px-5 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/methods/${m.slug}`}
+                          className="font-medium hover:text-brand"
+                        >
                           {m.title}
                         </Link>
                         <span className="ml-2 font-mono text-xs text-subtle">v{m.version}</span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <VerifiedBadge status={m.verification.status} size="sm" />
-                      </td>
-                      <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
-                        {m.codonId}
-                      </td>
-                      <td className="px-5 py-3 font-mono text-xs">{formatNumber(m.stats.runs)}</td>
-                      <td className="px-5 py-3 text-right">
-                        <Link
-                          href={`/methods/${m.slug}`}
-                          className="inline-flex items-center gap-1 text-xs text-brand hover:underline"
-                        >
-                          Open <ArrowUpRight className="h-3 w-3" />
-                        </Link>
-                      </td>
+                        <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                          {m.codonId}
+                        </p>
+                      </div>
+                      <VerifiedBadge status={m.verification.status} size="sm" />
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        <span className="font-mono text-foreground">
+                          {formatNumber(m.stats.runs)}
+                        </span>{" "}
+                        runs
+                      </span>
+                      <Link
+                        href={`/methods/${m.slug}`}
+                        className="inline-flex items-center gap-1 text-brand hover:underline"
+                      >
+                        Open <ArrowUpRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Desktop: table */}
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-subtle">
+                    <tr>
+                      <th className="px-5 py-2.5 font-medium">Method</th>
+                      <th className="px-5 py-2.5 font-medium">Status</th>
+                      <th className="px-5 py-2.5 font-medium">Codon ID</th>
+                      <th className="px-5 py-2.5 font-medium">Runs</th>
+                      <th className="px-5 py-2.5 font-medium"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {methods.map((m) => (
+                      <tr key={m.id} className="hover:bg-muted/30">
+                        <td className="px-5 py-3">
+                          <Link href={`/methods/${m.slug}`} className="font-medium hover:text-brand">
+                            {m.title}
+                          </Link>
+                          <span className="ml-2 font-mono text-xs text-subtle">v{m.version}</span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <VerifiedBadge status={m.verification.status} size="sm" />
+                        </td>
+                        <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
+                          {m.codonId}
+                        </td>
+                        <td className="px-5 py-3 font-mono text-xs">{formatNumber(m.stats.runs)}</td>
+                        <td className="px-5 py-3 text-right">
+                          <Link
+                            href={`/methods/${m.slug}`}
+                            className="inline-flex items-center gap-1 text-xs text-brand hover:underline"
+                          >
+                            Open <ArrowUpRight className="h-3 w-3" />
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 

@@ -77,45 +77,76 @@ export default async function BuyerDashboard() {
                 No runs yet — open a licensed method and run it on your input.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-subtle">
-                    <tr>
-                      <th className="px-5 py-2.5 font-medium">Method</th>
-                      <th className="px-5 py-2.5 font-medium">Input</th>
-                      <th className="px-5 py-2.5 font-medium">Status</th>
-                      <th className="px-5 py-2.5 font-medium">Duration</th>
-                      <th className="px-5 py-2.5 font-medium">When</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {runs.map((r, i) => (
-                      <tr key={`${r.slug}-${i}`} className="hover:bg-muted/30">
-                        <td className="px-5 py-3">
-                          <Link href={`/methods/${r.slug}`} className="font-medium hover:text-brand">
-                            {r.title}
-                          </Link>
-                        </td>
-                        <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
-                          {r.input}
-                        </td>
-                        <td className="px-5 py-3">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Succeeded
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
-                          {r.durationSec ? `${r.durationSec}s` : "—"}
-                        </td>
-                        <td className="px-5 py-3 text-xs text-muted-foreground">
-                          {formatRelative(r.at)}
-                        </td>
+              <>
+                {/* Mobile: stacked cards (the table scrolls sideways on phones) */}
+                <ul className="divide-y divide-border sm:hidden">
+                  {runs.map((r, i) => (
+                    <li key={`${r.slug}-${i}`} className="px-5 py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <Link
+                          href={`/methods/${r.slug}`}
+                          className="font-medium hover:text-brand"
+                        >
+                          {r.title}
+                        </Link>
+                        <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-success">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Succeeded
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                        {r.input}
+                      </p>
+                      <div className="mt-2 flex items-center gap-3 font-mono text-xs text-subtle">
+                        <span>{r.durationSec ? `${r.durationSec}s` : "—"}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="font-sans">{formatRelative(r.at)}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Desktop: table */}
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-subtle">
+                      <tr>
+                        <th className="px-5 py-2.5 font-medium">Method</th>
+                        <th className="px-5 py-2.5 font-medium">Input</th>
+                        <th className="px-5 py-2.5 font-medium">Status</th>
+                        <th className="px-5 py-2.5 font-medium">Duration</th>
+                        <th className="px-5 py-2.5 font-medium">When</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {runs.map((r, i) => (
+                        <tr key={`${r.slug}-${i}`} className="hover:bg-muted/30">
+                          <td className="px-5 py-3">
+                            <Link href={`/methods/${r.slug}`} className="font-medium hover:text-brand">
+                              {r.title}
+                            </Link>
+                          </td>
+                          <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
+                            {r.input}
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Succeeded
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
+                            {r.durationSec ? `${r.durationSec}s` : "—"}
+                          </td>
+                          <td className="px-5 py-3 text-xs text-muted-foreground">
+                            {formatRelative(r.at)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
 

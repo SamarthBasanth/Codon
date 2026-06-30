@@ -43,7 +43,24 @@ export async function generateMetadata({
   const { slug } = await params;
   const method = await getMethodDetail(slug);
   if (!method) return { title: "Method not found" };
-  return { title: method.title, description: method.summary };
+  const url = `/methods/${slug}`;
+  const fullTitle = `${method.title} · Codon`;
+  return {
+    title: method.title,
+    description: method.summary,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      url,
+      title: fullTitle,
+      description: method.summary,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: fullTitle,
+      description: method.summary,
+    },
+  };
 }
 
 function Stars({ rating }: { rating: number }) {

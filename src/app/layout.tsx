@@ -7,6 +7,7 @@ import {
   Plus_Jakarta_Sans,
 } from "next/font/google";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
 import { ThemeProvider, themeScript } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
@@ -41,13 +42,38 @@ const jbMono = JetBrains_Mono({
   weight: ["400", "500", "600"],
 });
 
+const DESCRIPTION =
+  "Codon independently verifies research artifacts — code, datasets, and citations — so journals, labs, and AI systems can separate verified science from noise. Code reproducibility is live today; citation and dataset checks ship as Codon Preflight.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Codon — the integrity layer for science",
     template: "%s · Codon",
   },
-  description:
-    "Codon independently verifies research artifacts — code, datasets, and citations — so journals, labs, and AI systems can separate verified science from noise. Code reproducibility is live today; citation and dataset checks ship as Codon Preflight.",
+  description: DESCRIPTION,
+  applicationName: "Codon",
+  keywords: [
+    "reproducibility",
+    "computational biology",
+    "method verification",
+    "research integrity",
+    "verified code",
+    "bioinformatics",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "Codon",
+    url: SITE_URL,
+    title: "Codon — the integrity layer for science",
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Codon — the integrity layer for science",
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
