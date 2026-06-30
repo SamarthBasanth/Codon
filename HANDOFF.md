@@ -28,6 +28,10 @@ Tagline: *GitHub stores code. Codon verifies the method, stamps the output, and 
 - **Scheduled re-verification** — daily Vercel Cron (`/api/cron/reverify`, `vercel.json`) re-runs published methods in E2B and flips the badge if one breaks.
 - **Catalog** — 3 curated sample pipelines (in code) + real user uploads (in Supabase). All "Free by Codon" (MIT).
 - **Profiles, dashboards, free licensing, public profile pages** (`/u/<handle>`) — all real, backed by Supabase.
+- **Public access** — the badge is meant to travel, so all public-facing surfaces are open to anonymous visitors: landing, `/browse`, `/methods/*` + reports, `/labs/*`, `/institutions/*`, `/u/*`, `/badge/*`. Only `/dashboard/*`, `/profile`, `/upload` are auth-gated (`src/proxy.ts`). License/run actions still require a real session server-side.
+- **SEO + social** — `robots.txt` + a dynamic `sitemap.xml` (static pages + every method/lab/institution, hourly revalidate). Root + per-method Open Graph/Twitter metadata, and a dynamic branded OG card per method (`methods/[slug]/opengraph-image.tsx`) showing title, summary, and the live verified pill.
+- **Mobile** — the landing (injected v4 HTML) is fully responsive (hero stacks, nav collapses, 3D badge fits, no horizontal scroll), and the seller/buyer dashboard tables reflow into stacked cards on phones. App pages are Tailwind-responsive.
+- **3D badge** — the orbiting "codon ✓ VERIFIED" pill is the landing embed-band centerpiece and also leads the `/verification` badge section (`src/components/badge-orbit.tsx`). Per-method embed snippet (`EmbedBadge`) on every method page.
 
 **Simulated / not yet built:**
 - Heavy/native pipelines beyond what E2B's image has pre-installed (numpy/pandas/scipy/sklearn ARE pre-installed; extra via the upload "packages" field → `pip install`).
@@ -64,7 +68,9 @@ src/
     page.tsx                      landing (v4 "CodonLanding" injected HTML + paper theme)
     verification/page.tsx         "How it works" + the badge section (BadgeMint animation, embed)
     badge/[id]/route.ts           LIVE SVG badge endpoint
-    methods/[slug]/page.tsx       method detail (run, license, cite, runnable source)
+    robots.ts / sitemap.ts        crawl policy + dynamic sitemap of public pages
+    methods/[slug]/page.tsx       method detail (run, license, cite, embed badge, source)
+    methods/[slug]/opengraph-image.tsx  dynamic branded social-share card
     browse/page.tsx               catalog grid
     upload/page.tsx               "List a method" (maxDuration=60 for E2B)
     profile/page.tsx              edit profile
@@ -155,7 +161,11 @@ npx vercel deploy --prod --yes --token <VERCEL_TOKEN> --scope samarth-basanth-s-
 
 ## 9. Roadmap (next bets — product decisions, not plumbing)
 
-- Payments / paid tier (Stripe) when desired.
-- Multi-file methods + larger inputs via object storage (S3/R2).
-- Search & discovery as the catalog grows.
-- Optional: move OAuth Google app out of "Testing" (verification), public showcase repo for portfolio.
+These remaining items need an **owner action / account** (not just code):
+- **Payments / paid tier (Stripe)** — requires a Stripe account + keys. Intentionally not built yet.
+- **Move Google OAuth out of "Testing"** — done in Google Cloud Console + Supabase (OAuth consent screen verification), not in this repo. Until then Google sign-in only works for allow-listed test users; email/password + GitHub OAuth work for everyone.
+- **Multi-file methods + larger inputs via object storage (S3/R2)** — needs a storage provider account + keys.
+
+Pure-code follow-ups (no account needed):
+- Search & discovery improvements as the catalog grows.
+- A `twitter-image` variant (currently Twitter falls back to the OG card, which is fine).
