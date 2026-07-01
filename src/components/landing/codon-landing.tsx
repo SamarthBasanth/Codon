@@ -64,16 +64,19 @@ section[data-hero]{min-height:92vh!important;}
 
 /* ── Mobile (the landing renders its own injected chrome) ───────────────── */
 @media(max-width:860px){
-  /* nav: shrink padding, drop the secondary link cluster (keep logo) */
-  nav{padding:16px 18px!important;}
+  /* nav: solid paper bar (so scrolled content doesn't show behind the logo),
+     shrink padding, drop the secondary link cluster (keep logo) */
+  nav{padding:14px 18px!important;background:rgba(237,229,213,.94)!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;}
   nav > *:last-child{display:none!important;}
   /* hero: force a single stacked column that fits the viewport */
-  [data-hero] [style*="104px 40px 70px"]{flex-direction:column!important;flex-wrap:nowrap!important;align-items:flex-start!important;max-width:100%!important;padding:92px 20px 36px!important;gap:26px!important;}
+  [data-hero] [style*="104px 40px 70px"]{flex-direction:column!important;flex-wrap:nowrap!important;align-items:flex-start!important;max-width:100%!important;padding:88px 20px 40px!important;gap:26px!important;}
   [data-hero] [style*="max-width:560px"]{max-width:100%!important;}
   [data-hero] h1{font-size:clamp(36px,9.2vw,54px)!important;line-height:1.05!important;}
   [data-hero] h1 + p,[data-hero] p[data-enter]{font-size:17px!important;max-width:100%!important;}
-  [data-hero] [data-stage]{height:auto!important;min-height:300px!important;width:100%!important;display:flex!important;align-items:center;justify-content:center;}
-  [data-hero] [data-card-enter]{width:min(360px,84vw)!important;transform:none!important;}
+  /* the floating specimen stage is position:absolute at 540px wide — it can't
+     fit a phone without hanging off-screen, and the badge band below already
+     shows the live verified pill. Hide it (and its chips) on mobile. */
+  [data-hero] [data-stage]{display:none!important;}
   [data-hero] [data-chips]{display:none!important;}
   /* shrink every band's side padding */
   [data-screen-label]{padding-left:20px!important;padding-right:20px!important;padding-top:48px!important;padding-bottom:48px!important;}
