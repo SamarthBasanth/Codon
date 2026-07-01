@@ -73,9 +73,12 @@ section[data-hero]{min-height:92vh!important;}
   [data-hero] [style*="max-width:560px"]{max-width:100%!important;}
   [data-hero] h1{font-size:clamp(36px,9.2vw,54px)!important;line-height:1.05!important;}
   [data-hero] h1 + p,[data-hero] p[data-enter]{font-size:17px!important;max-width:100%!important;}
-  /* the floating specimen stage is position:absolute at 540px wide — it can't
-     fit a phone without hanging off-screen, and the badge band below already
-     shows the live verified pill. Hide it (and its chips) on mobile. */
+  /* the floating specimen stage is a 540px-wide, position:absolute card that
+     can't fit a phone without hanging off-screen — and its visual column still
+     reserves ~510px of empty height even when the stage is hidden. Hide the
+     whole visual column (the child that contains the stage); the badge band
+     right below already shows the live verified pill. */
+  [data-hero] [style*="104px 40px 70px"] > *:has([data-stage]){display:none!important;}
   [data-hero] [data-stage]{display:none!important;}
   [data-hero] [data-chips]{display:none!important;}
   /* shrink every band's side padding */
