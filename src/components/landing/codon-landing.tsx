@@ -91,6 +91,12 @@ section[data-hero]{min-height:92vh!important;}
   .bh-pill{width:auto!important;height:auto!important;max-width:84vw!important;}
   .bh-panel h2{font-size:clamp(26px,7.2vw,40px)!important;}
   .bh-auroras{inset:0!important;}
+  /* reproducibility comparison: the WITHOUT/WITH boxes are a 2-col grid whose
+     monospace lines can't shrink below their min-width, so the green column ran
+     off the right edge. Stack them on phones. (Targeted by data attribute — the
+     reveal runtime rewrites the inline style, so a [style*=] match is unstable.) */
+  [data-cmp-grid]{grid-template-columns:1fr!important;}
+  [style*="padding:0 40px 96px"]{padding-left:20px!important;padding-right:20px!important;}
 }
 @media(max-width:430px){
   [data-hero] h1{font-size:clamp(32px,10vw,44px)!important;}
