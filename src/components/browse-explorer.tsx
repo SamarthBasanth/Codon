@@ -113,51 +113,68 @@ export function BrowseExplorer({ methods }: { methods: Method[] }) {
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = methods.filter((m) => {
-      if (q) {
-        const hay = (
-          m.title +
-          " " +
-          m.summary +
-          " " +
-          m.fields.join(" ") +
-          " " +
-          m.organisms.join(" ") +
-          " " +
-          m.language
-        ).toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      if (facets.fields.size && !m.fields.some((f) => facets.fields.has(f))) return false;
-      if (facets.languages.size && !facets.languages.has(m.language)) return false;
-      if (facets.organisms.size && !m.organisms.some((o) => facets.organisms.has(o))) return false;
-      if (facets.dataTypes.size && !m.dataTypes.some((d) => facets.dataTypes.has(d))) return false;
-      if (facets.licenses.size && !facets.licenses.has(m.license.type)) return false;
-      if (
-        verifiedOnly &&
-        m.verification.status !== "verified" &&
-        m.verification.status !== "external-dep"
-      )
-        return false;
-      return true;
-    });
+    const terms = q ? q.split(/\s+/).filter(Boolean) : [];
 
-    list = [...list].sort((a, b) => {
+    // Weighted, multi-term relevance: every term must appear in some field (AND);
+    // its contribution is the strongest field it hits (title/Codon ID rank above
+    // summary, facets, and prose). -1 => a term is missing, so it's not a match.
+    const scoreOf = (m: Method): number => {
+      const weighted: [string, number][] = [
+        [m.title, 6],
+        [m.codonId, 6],
+        [m.summary, 3],
+        [m.paperTitle ?? "", 3],
+        [`${m.fields.join(" ")} ${m.organisms.join(" ")} ${m.dataTypes.join(" ")}`, 2],
+        [m.language, 2],
+        [m.description.join(" "), 1],
+      ];
+      const lowered = weighted.map(([t, w]) => [String(t).toLowerCase(), w] as [string, number]);
+      const titleLower = m.title.toLowerCase();
+      let total = 0;
+      for (const term of terms) {
+        let best = 0;
+        for (const [t, w] of lowered) if (t.includes(term)) best = Math.max(best, w);
+        if (best === 0) return -1;
+        total += best;
+        if (titleLower.startsWith(term)) total += 3;
+      }
+      return total;
+    };
+
+    const scored = methods
+      .map((m) => ({ m, score: terms.length ? scoreOf(m) : 0 }))
+      .filter(({ m, score }) => {
+        if (terms.length && score < 0) return false;
+        if (facets.fields.size && !m.fields.some((f) => facets.fields.has(f))) return false;
+        if (facets.languages.size && !facets.languages.has(m.language)) return false;
+        if (facets.organisms.size && !m.organisms.some((o) => facets.organisms.has(o))) return false;
+        if (facets.dataTypes.size && !m.dataTypes.some((d) => facets.dataTypes.has(d))) return false;
+        if (facets.licenses.size && !facets.licenses.has(m.license.type)) return false;
+        if (
+          verifiedOnly &&
+          m.verification.status !== "verified" &&
+          m.verification.status !== "external-dep"
+        )
+          return false;
+        return true;
+      });
+
+    scored.sort((a, b) => {
       switch (sort) {
         case "runs":
-          return b.stats.runs - a.stats.runs;
+          return b.m.stats.runs - a.m.stats.runs;
         case "citations":
-          return b.stats.citations - a.stats.citations;
+          return b.m.stats.citations - a.m.stats.citations;
         case "stars":
-          return b.stats.stars - a.stats.stars;
+          return b.m.stats.stars - a.m.stats.stars;
         case "newest":
-          return +new Date(b.updatedAt) - +new Date(a.updatedAt);
+          return +new Date(b.m.updatedAt) - +new Date(a.m.updatedAt);
         default:
-          return 0;
+          return b.score - a.score; // relevance
       }
     });
-    return list;
-  }, [query, facets, sort, verifiedOnly]);
+    return scored.map(({ m }) => m);
+  }, [query, facets, sort, verifiedOnly, methods]);
 
   const activeCount =
     facets.fields.size +

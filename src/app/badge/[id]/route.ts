@@ -1,18 +1,21 @@
+import { createElement } from "react";
+import { ImageResponse } from "next/og";
 import { getAllMethods } from "@/server/methods";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Live, embeddable reproducibility badge — a real shields-style SVG served at
- * /badge/<slug>.svg (or /badge/<codonId>.svg). It reads the method's actual
- * verification status from the catalog, so the badge reflects reality and flips
- * if a method ever stops reproducing. Public + cacheable so it renders inside
- * external README/paper embeds (no auth).
+ * Live, embeddable reproducibility badge — a real shields-style badge served at
+ * /badge/<slug>.svg (or .png for papers/figures; or /badge/<codonId>.svg). It
+ * reads the method's actual verification status from the catalog, so it reflects
+ * reality and flips if a method ever stops reproducing. Public + cacheable so it
+ * renders inside external README/paper embeds (no auth).
  *
  * Query params (all optional) let one method expose several badges:
- *   ?metric=status|updated|id|runs|citations   what the right side shows
- *   ?style=flat|flat-square|for-the-badge       visual style (README-matching)
- *   ?label=<text>                               override the left label
+ *   ?metric=status|updated|id|doi|runs|citations|run   what the right side shows
+ *   ?style=flat|flat-square|for-the-badge              visual style
+ *   ?label=<text>                                      override the left label
+ * Extension: .svg (default) or .png (raster, for papers/slides).
  */
 
 const BRAND = "#2e3a6e";
@@ -28,20 +31,17 @@ const COLORS = {
 function esc(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-
 function nfmt(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
 }
-
-// Rough glyph width for the badge face (good enough for a flat badge).
-function textWidth(s: string, cap = false, big = false) {
-  const per = big ? 7.6 : 6.6;
-  return Math.ceil(s.length * per * (cap ? 1.08 : 1));
+function textWidth(s: string, big = false) {
+  return Math.ceil(s.length * (big ? 7.6 : 6.6));
 }
 
 type Style = "flat" | "flat-square" | "for-the-badge";
+const STYLES = new Set(["flat", "flat-square", "for-the-badge"]);
 
-function badgeSvg(label: string, message: string, color: string, style: Style) {
+function svgBadge(label: string, message: string, color: string, style: Style) {
   const ftb = style === "for-the-badge";
   const square = style === "flat-square";
   const h = ftb ? 28 : 20;
@@ -50,13 +50,13 @@ function badgeSvg(label: string, message: string, color: string, style: Style) {
   const M = ftb ? message.toUpperCase() : message;
   const fs = ftb ? 120 : 110;
   const padX = ftb ? 20 : 12;
-  const lw = textWidth(L, ftb, ftb) + padX;
-  const mw = textWidth(M, ftb, ftb) + padX;
+  const lw = textWidth(L, ftb) + padX;
+  const mw = textWidth(M, ftb) + padX;
   const w = lw + mw;
   const lx = (lw / 2) * 10;
   const mx = (lw + mw / 2) * 10;
-  const ltl = (textWidth(L, ftb, ftb) * 10).toString();
-  const mtl = (textWidth(M, ftb, ftb) * 10).toString();
+  const ltl = (textWidth(L, ftb) * 10).toString();
+  const mtl = (textWidth(M, ftb) * 10).toString();
   const yBase = ftb ? 190 : 140;
   const weight = ftb ? 'font-weight="bold"' : "";
   const spacing = ftb ? 'letter-spacing="6"' : "";
@@ -65,7 +65,6 @@ function badgeSvg(label: string, message: string, color: string, style: Style) {
       ? `<linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>`
       : "";
   const shadeRect = style === "flat" ? `<rect width="${w}" height="${h}" fill="url(#s)"/>` : "";
-
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" role="img" aria-label="${esc(L)}: ${esc(M)}">
   <title>${esc(L)}: ${esc(M)}</title>
   ${shade}
@@ -84,20 +83,60 @@ function badgeSvg(label: string, message: string, color: string, style: Style) {
 </svg>`;
 }
 
-const STYLES = new Set(["flat", "flat-square", "for-the-badge"]);
+// Raster badge for papers/slides (SVG often won't embed in PDFs). Rendered at 2x.
+function pngBadge(label: string, message: string, color: string, style: Style) {
+  const ftb = style === "for-the-badge";
+  const s = 2;
+  const h = (ftb ? 28 : 20) * s;
+  const L = ftb ? label.toUpperCase() : label;
+  const M = ftb ? message.toUpperCase() : message;
+  const fs = (ftb ? 12 : 11) * s;
+  const padX = (ftb ? 14 : 9) * s;
+  const seg = (bg: string, txt: string) =>
+    createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          height: "100%",
+          padding: `0 ${padX}px`,
+          background: bg,
+          color: "#fff",
+          fontSize: fs,
+          fontWeight: ftb ? 700 : 400,
+          letterSpacing: ftb ? 1.2 * s : 0,
+          whiteSpace: "nowrap",
+        },
+      },
+      txt,
+    );
+  const w = textWidth(L, ftb) * s + textWidth(M, ftb) * s + padX * 4;
+  return new ImageResponse(
+    createElement(
+      "div",
+      { style: { display: "flex", height: h, fontFamily: "sans-serif" } },
+      seg(BRAND, L),
+      seg(color, M),
+    ),
+    { width: Math.round(w), height: h },
+  );
+}
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const url = new URL(req.url);
+  const decoded = decodeURIComponent(id);
+  const isPng = /\.png$/i.test(decoded);
+  const key = decoded.replace(/\.(svg|png)$/i, "");
   const styleParam = url.searchParams.get("style") ?? "flat";
   const style = (STYLES.has(styleParam) ? styleParam : "flat") as Style;
   const metric = url.searchParams.get("metric") ?? "status";
   const labelOverride = url.searchParams.get("label");
-  const key = decodeURIComponent(id).replace(/\.svg$/i, "");
 
   let label = labelOverride?.slice(0, 24) || "codon";
-  let message: string;
-  let color: string;
+  let message = "unknown";
+  let color: string = COLORS.unknown;
 
   try {
     const methods = await getAllMethods();
@@ -110,35 +149,39 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       const verified = status === "verified" || status === "external-dep";
       const statusColor = COLORS[status] ?? COLORS.unknown;
       switch (metric) {
-        case "updated": {
-          const date = (m.verification.finishedAt ?? "").slice(0, 10);
+        case "updated":
           if (!labelOverride) label = "verified";
-          message = date || "unknown";
+          message = (m.verification.finishedAt ?? "").slice(0, 10) || "unknown";
           color = statusColor;
           break;
-        }
-        case "id": {
+        case "id":
           if (!labelOverride) label = "codon id";
           message = m.codonId || "—";
           color = verified ? COLORS.verified : statusColor;
           break;
-        }
-        case "runs": {
+        case "doi":
+          if (!labelOverride) label = "doi";
+          message = m.paperDoi?.replace(/^https?:\/\/(dx\.)?doi\.org\//i, "") || m.codonId || "—";
+          color = verified ? COLORS.verified : statusColor;
+          break;
+        case "runs":
           if (!labelOverride) label = "runs";
           message = nfmt(m.stats.runs);
           color = COLORS.verified;
           break;
-        }
-        case "citations": {
+        case "citations":
           if (!labelOverride) label = "cited by";
           message = nfmt(m.stats.citations);
           color = COLORS.verified;
           break;
-        }
-        default: {
+        case "run":
+          if (!labelOverride) label = "codon";
+          message = "▶ run it";
+          color = COLORS.verified;
+          break;
+        default:
           message = verified ? "✓ verified" : status === "pending" ? "verifying" : status;
           color = statusColor;
-        }
       }
     }
   } catch {
@@ -146,8 +189,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     color = COLORS.unknown;
   }
 
-  const svg = badgeSvg(label, message, color, style);
-  return new Response(svg, {
+  if (isPng) {
+    // ▶/✓ glyphs aren't in the default raster font — keep PNG text plain.
+    return pngBadge(label, message.replace(/[▶✓]\s?/g, ""), color, style);
+  }
+  return new Response(svgBadge(label, message, color, style), {
     headers: {
       "content-type": "image/svg+xml; charset=utf-8",
       "cache-control": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400",

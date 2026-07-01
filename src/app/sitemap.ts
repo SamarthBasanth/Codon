@@ -21,6 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   let methodPages: MetadataRoute.Sitemap = [];
+  let profilePages: MetadataRoute.Sitemap = [];
   try {
     const methods = await getAllMethods();
     methodPages = methods.map((m) => ({
@@ -28,6 +29,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.7,
+    }));
+    // public author profiles (/u/<handle>) — uploaded methods carry an author snapshot
+    const handles = new Set<string>();
+    for (const m of methods) {
+      const h = (m as { author?: { handle?: string } }).author?.handle;
+      if (h) handles.add(h);
+    }
+    profilePages = [...handles].map((h) => ({
+      url: `${SITE_URL}/u/${h}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
     }));
   } catch {
     // catalog briefly unavailable — still emit a valid sitemap
@@ -47,5 +60,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...methodPages, ...labPages, ...institutionPages];
+  return [...staticPages, ...methodPages, ...profilePages, ...labPages, ...institutionPages];
 }

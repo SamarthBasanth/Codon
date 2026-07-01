@@ -40,6 +40,7 @@ export function EmbedBadge({ slug }: { slug: string }) {
     `[![Verified by Codon](${badge()})](${methodUrl})`,
     `[![Last verified](${badge("updated")})](${reportUrl})`,
     `[![Codon ID](${badge("id")})](${methodUrl})`,
+    `[![Run it](${badge("run")})](${methodUrl})`,
   ].join("\n");
 
   const snippet = tab === "md" ? markdown : tab === "html" ? html : row;
@@ -96,6 +97,8 @@ export function EmbedBadge({ slug }: { slug: string }) {
             <img src={preview("updated")} alt="Last verified" style={{ height: style === "for-the-badge" ? 28 : 20 }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={preview("id")} alt="Codon ID" style={{ height: style === "for-the-badge" ? 28 : 20 }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview("run")} alt="Run it" style={{ height: style === "for-the-badge" ? 28 : 20 }} />
           </>
         )}
       </div>
@@ -132,7 +135,9 @@ export function EmbedBadge({ slug }: { slug: string }) {
 
         <p className="mt-2 text-xs text-muted-foreground">
           Paste into a repo README or paper. Each badge is live — it links back to the verification
-          report and flips if the method ever stops reproducing.
+          report and flips if the method ever stops reproducing. For a paper or slide deck, swap{" "}
+          <code className="rounded bg-muted px-1 font-mono">.svg</code> →{" "}
+          <code className="rounded bg-muted px-1 font-mono">.png</code> for a raster version.
         </p>
       </div>
     </div>

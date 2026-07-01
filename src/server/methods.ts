@@ -119,14 +119,49 @@ export async function getMethodsByHandle(
   return { author, methods: mine };
 }
 
+/**
+ * Relevance score for a query against a method: each search term must appear in
+ * at least one field (AND), and its contribution is the weight of the strongest
+ * field it hit — title/Codon ID rank above summary, tags, and prose. Returns -1
+ * if any term is missing (excluded from results).
+ */
+function relevanceScore(m: Method, terms: string[]): number {
+  const seller = getSellerById(m.sellerId)?.name ?? "";
+  const inst = getInstitutionById(m.institutionId);
+  const weighted: [string, number][] = (
+    [
+      [m.title, 6],
+      [m.codonId, 6],
+      [m.summary, 3],
+      [m.paperTitle ?? "", 3],
+      [`${m.fields.join(" ")} ${m.organisms.join(" ")} ${m.dataTypes.join(" ")}`, 2],
+      [m.language, 2],
+      [`${seller} ${inst?.name ?? ""} ${inst?.short ?? ""}`, 2],
+      [m.description.join(" "), 1],
+    ] as [string, number][]
+  ).map(([t, w]) => [String(t).toLowerCase(), w] as [string, number]);
+
+  const titleLower = m.title.toLowerCase();
+  let total = 0;
+  for (const term of terms) {
+    let best = 0;
+    for (const [text, w] of weighted) if (text.includes(term)) best = Math.max(best, w);
+    if (best === 0) return -1; // term absent everywhere → not a match
+    total += best;
+    if (titleLower.startsWith(term)) total += 3; // prefix bonus (e.g. "cell" → CellLineage)
+  }
+  return total;
+}
+
 export async function listMethods(filters: MethodFilters = {}): Promise<MethodSummary[]> {
   const { methods } = await loadMethods();
   const q = filters.q?.trim().toLowerCase();
-  let list = methods.filter((m) => {
-    if (q) {
-      const hay = `${m.title} ${m.summary} ${m.fields.join(" ")} ${m.organisms.join(" ")} ${m.language}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
+  const terms = q ? q.split(/\s+/).filter(Boolean) : [];
+
+  let scored = methods.map((m) => ({ m, score: terms.length ? relevanceScore(m, terms) : 0 }));
+  if (terms.length) scored = scored.filter((x) => x.score >= 0);
+
+  scored = scored.filter(({ m }) => {
     if (filters.field && !m.fields.includes(filters.field)) return false;
     if (filters.language && m.language !== filters.language) return false;
     if (filters.organism && !m.organisms.includes(filters.organism)) return false;
@@ -143,20 +178,23 @@ export async function listMethods(filters: MethodFilters = {}): Promise<MethodSu
 
   switch (filters.sort) {
     case "runs":
-      list = [...list].sort((a, b) => b.stats.runs - a.stats.runs);
+      scored.sort((a, b) => b.m.stats.runs - a.m.stats.runs);
       break;
     case "citations":
-      list = [...list].sort((a, b) => b.stats.citations - a.stats.citations);
+      scored.sort((a, b) => b.m.stats.citations - a.m.stats.citations);
       break;
     case "stars":
-      list = [...list].sort((a, b) => b.stats.stars - a.stats.stars);
+      scored.sort((a, b) => b.m.stats.stars - a.m.stats.stars);
       break;
     case "newest":
-      list = [...list].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
+      scored.sort((a, b) => +new Date(b.m.updatedAt) - +new Date(a.m.updatedAt));
       break;
+    default:
+      // relevance first when searching; otherwise leave catalog order
+      if (terms.length) scored.sort((a, b) => b.score - a.score);
   }
 
-  return list.map(toSummary);
+  return scored.map(({ m }) => toSummary(m));
 }
 
 export async function getMethodDetail(slug: string) {
