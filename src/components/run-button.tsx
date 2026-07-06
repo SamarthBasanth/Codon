@@ -55,6 +55,14 @@ export function RunButton({
     }, 200);
   }
 
+  async function onInputFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const text = await f.text();
+    setInput(text.slice(0, 200000));
+  }
+
   async function run() {
     if (!pipeline) return;
     setPhase("running");
@@ -128,16 +136,27 @@ export function RunButton({
                     egress). It executes twice to prove the output is reproducible.
                   </p>
                   <div>
-                    <label className="mb-1.5 flex items-center justify-between text-xs text-subtle">
+                    <div className="mb-1.5 flex items-center justify-between text-xs text-subtle">
                       <span className="font-mono">{pipeline.inputLabel}</span>
-                      <button
-                        type="button"
-                        onClick={() => setInput(pipeline.sampleInput)}
-                        className="inline-flex items-center gap-1 text-brand hover:underline"
-                      >
-                        <RotateCcw className="h-3 w-3" /> Reset sample
-                      </button>
-                    </label>
+                      <div className="flex items-center gap-3">
+                        <label className="inline-flex cursor-pointer items-center gap-1 text-brand hover:underline">
+                          <FileUp className="h-3 w-3" /> Upload your data
+                          <input
+                            type="file"
+                            accept=".csv,.tsv,.txt,.tab,.xyz,.h5ad,text/*"
+                            className="hidden"
+                            onChange={onInputFile}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setInput(pipeline.sampleInput)}
+                          className="inline-flex items-center gap-1 text-brand hover:underline"
+                        >
+                          <RotateCcw className="h-3 w-3" /> Reset sample
+                        </button>
+                      </div>
+                    </div>
                     <textarea
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
