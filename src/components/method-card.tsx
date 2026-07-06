@@ -8,6 +8,7 @@ import {
 import { formatNumber } from "@/lib/utils";
 import { VerifiedBadge } from "./verified-badge";
 import { Badge } from "./ui/badge";
+import { TiltCard } from "./tilt-card";
 
 function priceLabel(method: Method): { text: string; tone: "brand" | "muted" } {
   switch (method.pricing.model) {
@@ -31,9 +32,10 @@ export function MethodCard({ method }: { method: Method }) {
   const price = priceLabel(method);
 
   return (
+    <TiltCard className="h-full rounded-xl">
     <Link
       href={`/methods/${method.slug}`}
-      className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-all hover:border-border-strong hover:shadow-[0_2px_24px_-12px] hover:shadow-brand/40"
+      className="group card-lift relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-border-strong"
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <Badge variant="mono">{method.language}</Badge>
@@ -91,5 +93,6 @@ export function MethodCard({ method }: { method: Method }) {
         </span>
       </div>
     </Link>
+    </TiltCard>
   );
 }

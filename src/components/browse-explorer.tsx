@@ -13,6 +13,7 @@ import {
   type Method,
 } from "@/lib/mockData";
 import { MethodCard } from "./method-card";
+import { Reveal } from "./reveal";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 
@@ -310,8 +311,10 @@ export function BrowseExplorer({ methods }: { methods: Method[] }) {
           </p>
           {results.length > 0 ? (
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {results.map((m) => (
-                <MethodCard key={m.id} method={m} />
+              {results.map((m, i) => (
+                <Reveal key={m.id} index={Math.min(i, 8)} className="h-full">
+                  <MethodCard method={m} />
+                </Reveal>
               ))}
             </div>
           ) : (

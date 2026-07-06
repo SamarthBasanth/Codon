@@ -100,8 +100,9 @@ export default function VerificationPage() {
               Verify a method
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="#preflight" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
-              See Codon Preflight
+            <Link href="/preflight" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
+              Explore Codon Preflight
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -185,10 +186,15 @@ export default function VerificationPage() {
               before publication and returns a reviewer-ready trust report — so reviewers and journals
               don&apos;t have to audit every claim by hand.
             </p>
-            <Link href="/upload" className={cn(buttonVariants(), "mt-6")}>
-              Try code verification today
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/preflight" className={cn(buttonVariants())}>
+                Explore Preflight
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/upload" className={cn(buttonVariants({ variant: "outline" }))}>
+                Try code verification today
+              </Link>
+            </div>
           </div>
           <div className="rounded-2xl border border-border bg-card p-6">
             <h3 className="mb-4 text-sm font-semibold">Integrity report includes</h3>
