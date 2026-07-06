@@ -26,6 +26,8 @@ import { ProvenanceBlock } from "@/components/provenance-block";
 import { LicensePanel } from "@/components/license-panel";
 import { CitationBlock } from "@/components/citation-block";
 import { EmbedBadge } from "@/components/embed-badge";
+import { TiltCard } from "@/components/tilt-card";
+import { CountUp } from "@/components/count-up";
 import { ExternalToolChip } from "@/components/external-tool-chip";
 import { FileTree } from "@/components/file-tree";
 import { CodeBlock } from "@/components/code-block";
@@ -357,9 +359,10 @@ export default async function MethodPage({
             <LicensePanel method={method} licensed={licensed} />
 
             {/* Verification summary */}
+            <TiltCard className="rounded-xl" max={4}>
             <Link
               href={`/methods/${method.slug}/verification`}
-              className="block rounded-xl border border-border bg-card p-5 transition-colors hover:border-border-strong"
+              className="card-lift relative block overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-border-strong"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Verification</h3>
@@ -382,27 +385,32 @@ export default async function MethodPage({
                 </div>
               </div>
             </Link>
+            </TiltCard>
 
             <ProvenanceBlock method={method} seller={seller} institution={institution} />
 
             {/* Stats */}
+            <TiltCard className="rounded-xl" max={4}>
             <div className="rounded-xl border border-border bg-card p-5">
               <h3 className="mb-3 text-sm font-semibold">Usage</h3>
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 {[
-                  { icon: GitBranch, label: "Runs", value: formatNumber(method.stats.runs) },
+                  { icon: GitBranch, label: "Runs", value: method.stats.runs },
                   { icon: Quote, label: "Citations", value: method.stats.citations },
-                  { icon: Download, label: "Downloads", value: formatNumber(method.stats.downloads) },
-                  { icon: Star, label: "Stars", value: formatNumber(method.stats.stars) },
+                  { icon: Download, label: "Downloads", value: method.stats.downloads },
+                  { icon: Star, label: "Stars", value: method.stats.stars },
                 ].map((s) => (
                   <div key={s.label} className="rounded-lg bg-muted/40 p-3">
                     <s.icon className="h-4 w-4 text-muted-foreground" />
-                    <p className="mt-1.5 text-lg font-semibold">{s.value}</p>
+                    <p className="mt-1.5 text-lg font-semibold">
+                      <CountUp to={s.value} />
+                    </p>
                     <p className="text-xs text-subtle">{s.label}</p>
                   </div>
                 ))}
               </dl>
             </div>
+            </TiltCard>
 
             {/* Versions */}
             <div className="rounded-xl border border-border bg-card p-5">
