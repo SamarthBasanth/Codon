@@ -16,6 +16,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { PreflightScan } from "@/components/preflight-scan";
+import { WaitlistForm } from "@/components/waitlist-form";
 import { Reveal } from "@/components/reveal";
 import { TiltCard } from "@/components/tilt-card";
 import { CountUp } from "@/components/count-up";
@@ -78,7 +79,7 @@ const TIERS = [
     highlight: true,
     features: ["Full integrity scan (all 6 checks)", "Shareable integrity report + PDF", "Citation, data & figure flags", "Priority reprocessing"],
     cta: "Request early access",
-    href: "mailto:samarthbasanth@gmail.com?subject=Codon%20Preflight%20—%20Pro%20access",
+    href: "#waitlist",
   },
   {
     name: "Journals & publishers",
@@ -87,7 +88,7 @@ const TIERS = [
     highlight: false,
     features: ["Submission-gate integration + API", "Batch scanning across a pipeline", "Editor dashboard & audit trail", "SLA, SSO, and support"],
     cta: "Talk to us",
-    href: "mailto:samarthbasanth@gmail.com?subject=Codon%20Preflight%20—%20Journal%20/%20Publisher",
+    href: "#waitlist",
   },
 ];
 
@@ -115,10 +116,7 @@ export default function PreflightPage() {
                 See a live scan
                 <ArrowRight className="h-4 w-4" />
               </a>
-              <a
-                href="mailto:samarthbasanth@gmail.com?subject=Codon%20Preflight%20—%20early%20access"
-                className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
-              >
+              <a href="#waitlist" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
                 Request early access
               </a>
             </div>
@@ -280,33 +278,34 @@ export default function PreflightPage() {
         </div>
       </section>
 
-      {/* Closing CTA */}
-      <section className="pt-20">
-        <Reveal variant="zoom">
-          <div className="relative overflow-hidden rounded-2xl border border-brand/30 bg-brand px-8 py-12 text-center text-brand-foreground elevate-brand">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-            <h2 className="font-serif text-3xl font-normal tracking-tight sm:text-4xl">
-              Be first to run Preflight.
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-brand-foreground/80">
-              We&apos;re onboarding a small group of authors, reviewers, and journals into the
-              private beta. Tell us what you publish and we&apos;ll reach out.
-            </p>
-            <a
-              href="mailto:samarthbasanth@gmail.com?subject=Codon%20Preflight%20—%20beta%20waitlist"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-foreground px-5 py-2.5 text-sm font-semibold text-brand transition-transform hover:-translate-y-0.5"
-            >
-              Join the waitlist
-              <ArrowRight className="h-4 w-4" />
-            </a>
-            <p className="mt-4 text-xs text-brand-foreground/70">
-              <Link href="/verification" className="underline underline-offset-4">
-                See what&apos;s live today
-              </Link>{" "}
-              — code reproducibility is real and running now.
-            </p>
-          </div>
-        </Reveal>
+      {/* Waitlist */}
+      <section id="waitlist" className="scroll-mt-24 pt-20">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+          <Reveal variant="left">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+                Early access
+              </p>
+              <h2 className="mt-2 font-serif text-3xl font-normal tracking-tight sm:text-4xl">
+                Be first to run Preflight.
+              </h2>
+              <p className="mt-4 max-w-md leading-relaxed text-muted-foreground">
+                We&apos;re onboarding a small group of authors, reviewers, and journals into the
+                private beta. Tell us what you publish or review, and we&apos;ll reach out as each
+                check goes live.
+              </p>
+              <p className="mt-5 text-sm text-muted-foreground">
+                <Link href="/verification" className="font-medium text-brand underline underline-offset-4">
+                  See what&apos;s live today
+                </Link>{" "}
+                — code reproducibility is real and running now; the rest ships from here.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal variant="right">
+            <WaitlistForm />
+          </Reveal>
+        </div>
       </section>
     </div>
   );

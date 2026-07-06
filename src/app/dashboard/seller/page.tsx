@@ -18,6 +18,7 @@ import { cn, formatNumber, handleFrom, initialsOf } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { CountUp } from "@/components/count-up";
 
 export default async function DashboardOverview() {
   const user = await getSessionUser();
@@ -51,10 +52,10 @@ export default async function DashboardOverview() {
   const completeness = Math.round((filled / fields.length) * 100);
 
   const kpis = [
-    { icon: FileCode2, label: "Published methods", value: String(methods.length) },
-    { icon: BadgeCheck, label: "Verified", value: String(verified) },
-    { icon: GitBranch, label: "Runs (all time)", value: formatNumber(totalRuns) },
-    { icon: Quote, label: "Citations", value: formatNumber(citations) },
+    { icon: FileCode2, label: "Published methods", value: methods.length },
+    { icon: BadgeCheck, label: "Verified", value: verified },
+    { icon: GitBranch, label: "Runs (all time)", value: totalRuns },
+    { icon: Quote, label: "Citations", value: citations },
   ];
 
   return (
@@ -92,9 +93,11 @@ export default async function DashboardOverview() {
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-5">
+          <div key={k.label} className="card-lift rounded-xl border border-border bg-card p-5">
             <k.icon className="h-5 w-5 text-muted-foreground" />
-            <p className="mt-3 text-2xl font-semibold tracking-tight">{k.value}</p>
+            <p className="mt-3 text-2xl font-semibold tracking-tight">
+              <CountUp to={k.value} />
+            </p>
             <p className="text-xs text-subtle">{k.label}</p>
           </div>
         ))}
