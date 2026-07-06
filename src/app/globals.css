@@ -232,6 +232,11 @@ body {
       0 16px 40px -16px color-mix(in oklab, var(--brand) 34%, transparent);
   }
 
+  /* Scrolled navbar elevation */
+  .nav-shadow {
+    box-shadow: 0 6px 24px -14px color-mix(in oklab, var(--foreground) 42%, transparent);
+  }
+
   /* Glass surface */
   .glass {
     background: color-mix(in oklab, var(--surface) 74%, transparent);

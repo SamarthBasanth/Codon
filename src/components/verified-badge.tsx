@@ -45,6 +45,7 @@ export function VerifiedBadge({
   className?: string;
 }) {
   const { icon: Icon, classes } = config[status];
+  const isVerified = status === "verified" || status === "external-dep";
   const sizes = {
     sm: "text-[0.7rem] px-2 py-0.5 gap-1 [&_svg]:h-3 [&_svg]:w-3",
     md: "text-xs px-2.5 py-1 gap-1.5 [&_svg]:h-3.5 [&_svg]:w-3.5",
@@ -53,14 +54,15 @@ export function VerifiedBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border font-medium whitespace-nowrap",
+        "relative inline-flex items-center overflow-hidden rounded-full border font-medium whitespace-nowrap",
         classes,
         sizes[size],
+        isVerified && "shimmer",
         className,
       )}
     >
-      <Icon className={cn(status === "pending" && "animate-pulse-soft")} />
-      {label ?? verificationStatusLabel[status]}
+      <Icon className={cn("relative z-[1]", status === "pending" && "animate-pulse-soft")} />
+      <span className="relative z-[1]">{label ?? verificationStatusLabel[status]}</span>
     </span>
   );
 }

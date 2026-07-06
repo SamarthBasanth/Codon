@@ -32,6 +32,7 @@ export function buttonVariants({
 }: { variant?: Variant; size?: Size } = {}) {
   return cn(
     "inline-flex items-center justify-center font-medium transition-all whitespace-nowrap cursor-pointer select-none",
+    "active:translate-y-px active:scale-[0.99]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "disabled:opacity-50 disabled:pointer-events-none",
     variantClasses[variant],
