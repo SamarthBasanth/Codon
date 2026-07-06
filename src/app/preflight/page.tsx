@@ -55,11 +55,11 @@ const AUDIENCES = [
 
 const CHECKS = [
   { icon: FlaskConical, title: "Code reproducibility", live: true, body: "Runs the method in a sealed sandbox and confirms it reproduces the declared output." },
-  { icon: Link2Off, title: "Citation integrity", live: false, body: "Flags retracted, nonexistent, or mismatched references and broken DOIs." },
+  { icon: Sigma, title: "Statistical consistency", live: true, body: "Recomputes every reported p-value (statcheck) and tests means for arithmetic possibility (GRIM)." },
+  { icon: Link2Off, title: "Citation integrity", live: true, body: "Resolves each DOI against Crossref and flags references that don't exist or are retracted." },
   { icon: FileSearch, title: "Dataset availability", live: false, body: "Checks that declared data actually exists, resolves, and matches the claims." },
   { icon: ImageOff, title: "Figure integrity", live: false, body: "Detects duplicated, spliced, or manipulated panels across the figures." },
-  { icon: Bot, title: "AI-generated text", live: false, body: "Scores sections for synthetic phrasing so editors can review with context." },
-  { icon: Sigma, title: "Statistical consistency", live: false, body: "Recomputes reported statistics (GRIM, p-values) and flags impossible values." },
+  { icon: Bot, title: "AI-generated text", live: false, body: "Transparent heuristic screen for synthetic phrasing — a signal for human review, not proof." },
 ];
 
 const TIERS = [
@@ -152,6 +152,20 @@ export default function PreflightPage() {
         </Reveal>
         <Reveal variant="zoom">
           <PreflightScan />
+        </Reveal>
+        <Reveal>
+          <div className="mt-6 text-center">
+            <Link
+              href="/preflight/analyze"
+              className={cn(buttonVariants({ size: "lg" }))}
+            >
+              Run the real checks on your own text
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <p className="mt-2 text-xs text-subtle">
+              statcheck · GRIM · Crossref run live today — paste a Results section.
+            </p>
+          </div>
         </Reveal>
       </section>
 
