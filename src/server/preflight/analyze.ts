@@ -1,5 +1,6 @@
 import { runStatcheck } from "./statcheck";
 import { runGrim } from "./grim";
+import { runGrimmer } from "./grimmer";
 import { extractDois, checkDois } from "./citations";
 import { aiHeuristics } from "./aiheuristics";
 
@@ -82,6 +83,22 @@ export async function analyze(text: string): Promise<AnalysisReport> {
     });
   }
 
+  // 2b) GRIMMER — impossible standard deviations
+  const grimmer = runGrimmer(text);
+  for (const g of grimmer) {
+    findings.push({
+      start: g.start,
+      end: g.end,
+      snippet: g.raw,
+      category: "grim",
+      severity: "fail",
+      title: "Impossible SD (GRIMMER)",
+      reason: g.detail,
+      method: "GRIMMER",
+      citation: "Anaya, 2016, PeerJ Preprints",
+    });
+  }
+
   // 3) Citation integrity — Crossref DOI resolution
   const dois = extractDois(text);
   const doiResults = await checkDois(dois);
@@ -153,14 +170,15 @@ export async function analyze(text: string): Promise<AnalysisReport> {
     },
     {
       id: "grim",
-      label: "Impossible means (GRIM)",
+      label: "Impossible means & SDs (GRIM/GRIMMER)",
       live: true,
-      method: "GRIM",
-      citation: "Brown & Heathers, 2017",
-      status: grim.length ? "fail" : "pass",
-      summary: grim.length
-        ? `${grim.length} reported mean${grim.length === 1 ? "" : "s"} arithmetically impossible`
-        : "No GRIM-inconsistent means detected.",
+      method: "GRIM / GRIMMER",
+      citation: "Brown & Heathers 2017; Anaya 2016",
+      status: grim.length || grimmer.length ? "fail" : "pass",
+      summary:
+        grim.length || grimmer.length
+          ? `${grim.length} impossible mean${grim.length === 1 ? "" : "s"}, ${grimmer.length} impossible SD${grimmer.length === 1 ? "" : "s"}`
+          : "No GRIM/GRIMMER inconsistencies detected.",
     },
     {
       id: "citation",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, FileSearch, Info, Loader2, Sparkles, XCircle } from "lucide-react";
+import { AlertTriangle, FileSearch, Info, Loader2, Sparkles, Upload, XCircle } from "lucide-react";
 import { analyzeManuscript } from "@/server/preflight-actions";
 import type { AnalysisReport, Finding, Severity } from "@/server/preflight/analyze";
 import { CountUp } from "./count-up";
@@ -47,6 +47,35 @@ export function PreflightAnalyzer() {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [error, setError] = useState("");
+  const [extracting, setExtracting] = useState(false);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError("");
+    const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+    if (isPdf) {
+      setExtracting(true);
+      try {
+        const { extractPdfText } = await import("@/lib/pdf-extract");
+        const txt = await extractPdfText(file);
+        if (txt.trim().length < 40) {
+          setError("No text layer found — scanned/image-only PDFs aren't supported yet. Paste the text instead.");
+        } else {
+          setText(txt);
+        }
+      } catch {
+        setError("Couldn't read that PDF. Try pasting the text instead.");
+      } finally {
+        setExtracting(false);
+      }
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => setText(String(reader.result ?? ""));
+      reader.readAsText(file);
+    }
+  }
 
   async function run() {
     if (state === "loading") return;
@@ -81,14 +110,27 @@ export function PreflightAnalyzer() {
             <div className="mb-3 flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-semibold">
                 <FileSearch className="h-4 w-4 text-brand" />
-                Paste a manuscript excerpt
+                Paste, or upload a PDF
               </span>
-              <button
-                onClick={() => setText(SAMPLE)}
-                className="text-xs font-medium text-brand hover:underline"
-              >
-                Load sample
-              </button>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-brand hover:underline">
+                  <Upload className="h-3.5 w-3.5" />
+                  {extracting ? "Reading PDF…" : "Upload PDF / .txt"}
+                  <input
+                    type="file"
+                    accept=".pdf,.txt,text/plain,application/pdf"
+                    className="hidden"
+                    onChange={onFile}
+                    disabled={extracting}
+                  />
+                </label>
+                <button
+                  onClick={() => setText(SAMPLE)}
+                  className="text-xs font-medium text-brand hover:underline"
+                >
+                  Load sample
+                </button>
+              </div>
             </div>
             <textarea
               value={text}
