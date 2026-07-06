@@ -666,6 +666,107 @@ export const methods: Method[] = [
   },
 
   {
+    id: "m-scanpy-cluster",
+    slug: "scanpy-cluster",
+    title: "scRNA-seq Clustering (Scanpy)",
+    summary:
+      "The canonical single-cell clustering workflow — normalize, PCA, k-NN graph, and Leiden community detection — running the real Scanpy toolkit, verified to reproduce byte-for-byte.",
+    description: [
+      "A runnable reference of the standard Scanpy clustering pipeline: library-size normalization, log1p, PCA (arpack), a nearest-neighbour graph, and Leiden community detection — the exact steps behind most published scRNA-seq analyses.",
+      "This executes the real Scanpy library (pinned to 1.12.2) with igraph + leidenalg — not a reimplementation — in an E2B Firecracker microVM, and is confirmed to reproduce byte-for-byte across two independent runs, including the Leiden assignment (which is notoriously environment-sensitive).",
+      "Press Run and Codon provisions the pinned environment, runs the pipeline on a seeded synthetic dataset, and checks the cluster assignment against the verified reference output.",
+    ],
+    sellerId: "seller-okafor",
+    institutionId: "inst-lindgren",
+    fields: ["Single-cell"],
+    organisms: ["Human", "Mouse"],
+    dataTypes: ["scRNA-seq", "snRNA-seq"],
+    language: "Python",
+    status: "published",
+    paperDoi: "",
+    paperTitle: "Scanpy: large-scale single-cell gene expression data analysis (Wolf et al., 2018)",
+    codonId: "codon.2026.00812",
+    version: "1.12.2",
+    versionHistory: [
+      { version: "1.12.2", date: "2026-06-28", note: "Verified on an E2B microVM — reproduced byte-for-byte", status: "verified" },
+    ],
+    externalTools: [],
+    files: [
+      { name: "pipeline.py", kind: "file", fileType: "code", size: "1.2 KB" },
+      { name: "requirements.txt", kind: "file", fileType: "env", size: "58 B" },
+      { name: "codon.manifest.json", kind: "file", fileType: "config", size: "1.0 KB" },
+    ],
+    sampleInput: {
+      name: "seeded synthetic AnnData",
+      format: "generated in-method (np.random.seed(0))",
+      preview: "300 cells × 60 genes of Poisson counts with two planted populations — fully deterministic.",
+    },
+    expectedOutput: {
+      name: "cluster summary",
+      format: "text",
+      preview: "cells=300 genes=60\nn_clusters=7\ncluster_sizes=[81, 53, 48, 42, 35, 25, 16]",
+    },
+    parameters: [
+      { name: "n_neighbors", type: "int", default: "15", required: false, description: "Neighbours for the k-NN graph." },
+      { name: "n_comps", type: "int", default: "10", required: false, description: "PCA components." },
+      { name: "random_state", type: "int", default: "0", required: false, description: "Seed for deterministic clustering." },
+    ],
+    license: {
+      type: "open",
+      spdx: "MIT",
+      name: "Free by Codon",
+      terms: "Free to inspect, run, and license under the MIT license — hosted and independently verified by Codon.",
+    },
+    pricing: { model: "free", currency: "USD", runAmount: 0 },
+    stats: { runs: 2, citations: 0, downloads: 0, stars: 6, rating: 5, reviewCount: 0 },
+    reviews: [],
+    readme:
+      "# scRNA-seq Clustering (Scanpy)\n\nThe canonical Scanpy clustering workflow, verified reproducible.\n\n```python\nsc.pp.normalize_total(adata, target_sum=1e4)\nsc.pp.log1p(adata)\nsc.pp.pca(adata, n_comps=10, svd_solver='arpack')\nsc.pp.neighbors(adata, n_neighbors=15, random_state=0)\nsc.tl.leiden(adata, random_state=0, flavor='igraph')\n```\n\nRuns server-side in an E2B microVM (`scanpy==1.12.2`, igraph, leidenalg) and\nreproduces the reference cluster assignment byte-for-byte across independent runs.",
+    createdAt: "2026-06-28",
+    updatedAt: "2026-06-28",
+    featured: true,
+    verification: {
+      id: "ver-scanpy-812",
+      status: "verified",
+      startedAt: "2026-06-28T00:00:00Z",
+      finishedAt: "2026-06-28T00:00:35Z",
+      durationSec: 35,
+      verifierVersion: "codon-verifier (E2B)",
+      baseImage: "e2b/code-interpreter · Python 3.12 (Firecracker microVM)",
+      imageDigest: hash("sha256", "scanpy-e2b-1.12.2"),
+      inputHash: hash("blake3", "scanpy-seed-0"),
+      expectedOutputHash: "sha256:627a61694cf7ea06b110ee1da0361d53ef764f2563312ca37f319a3174cafc7c",
+      actualOutputHash: "sha256:627a61694cf7ea06b110ee1da0361d53ef764f2563312ca37f319a3174cafc7c",
+      toleranceProfile: "exact: byte-identical stdout",
+      runExitCode: 0,
+      runWallSec: 33,
+      peakMemoryMb: 640,
+      buildSteps: [
+        { label: "Create E2B microVM", status: "ok", durationSec: 2 },
+        { label: "pip install scanpy==1.12.2 igraph leidenalg", status: "ok", durationSec: 12 },
+        { label: "Run pipeline on seeded input", status: "ok", durationSec: 19 },
+        { label: "Re-run in a second microVM — byte-identical", status: "ok", durationSec: 2 },
+      ],
+      resourceLimits: {
+        cpu: "shared vCPU",
+        memory: "microVM",
+        timeout: "5 min",
+        egress: "pip install only",
+        outputCap: "—",
+      },
+      diff: [
+        {
+          name: "cluster summary",
+          kind: "exact",
+          status: "match",
+          detail: "Leiden assignment reproduced byte-for-byte across two independent microVMs (7 clusters, sizes [81,53,48,42,35,25,16]).",
+          tolerance: "exact",
+        },
+      ],
+    },
+  },
+
+  {
     id: "m-varsig",
     slug: "varsig-somatic",
     title: "VarSig",
@@ -1636,7 +1737,7 @@ export function freeByCodon<T extends Method>(m: T): T {
  * molecular docking, single-cell). Kept deliberately small; user-submitted
  * methods are layered on top by the server data layer.
  */
-const CURATED_SLUGS = ["neuroseg3d", "dockstream-ad", "cellineage-vi"];
+const CURATED_SLUGS = ["scanpy-cluster", "neuroseg3d", "dockstream-ad", "cellineage-vi"];
 export const allMethods: Method[] = methods
   .filter((m) => CURATED_SLUGS.includes(m.slug))
   .map(freeByCodon);

@@ -18,6 +18,9 @@ export interface Pipeline {
    *  captured from the trusted E2B sandbox. Used to show a real
    *  "reproduces the verified result" verdict when the sample is run. */
   expectedOutput?: string;
+  /** Real library methods (scanpy etc.) can't run in Pyodide — they execute in
+   *  the E2B cloud sandbox via the metered server-run path, not in the browser. */
+  cloudOnly?: boolean;
   /** Shown for external-dependency methods (full pipeline runs the real tool). */
   note?: string;
 }
@@ -127,7 +130,43 @@ print(f"dock_score={score:.2f} kcal/mol  (quick rigid score)")
 print("note: full ensemble docking runs AutoDock Vina on the licensed runner")
 `;
 
+const SCANPY = `# scRNA-seq clustering with the real Scanpy toolkit (pinned).
+# Generates a seeded synthetic dataset, then runs the canonical workflow:
+# normalize -> log1p -> PCA -> k-NN graph -> Leiden community detection.
+import warnings; warnings.filterwarnings("ignore")
+import numpy as np, anndata as ad, scanpy as sc
+
+np.random.seed(0)
+X = np.random.poisson(1.0, size=(300, 60)).astype("float32")
+X[:150, :20] += np.random.poisson(3.0, size=(150, 20))   # plant two cell populations
+X[150:, 20:40] += np.random.poisson(3.0, size=(150, 20))
+
+adata = ad.AnnData(X)
+sc.pp.normalize_total(adata, target_sum=1e4)
+sc.pp.log1p(adata)
+sc.pp.pca(adata, n_comps=10, svd_solver="arpack")
+sc.pp.neighbors(adata, n_neighbors=15, random_state=0)
+sc.tl.leiden(adata, random_state=0, flavor="igraph", n_iterations=2, directed=False)
+
+print(f"cells={adata.n_obs} genes={adata.n_vars}")
+print(f"n_clusters={int(adata.obs['leiden'].nunique())}")
+print("cluster_sizes=" + str(sorted(adata.obs['leiden'].value_counts().tolist(), reverse=True)))
+`;
+
 export const PIPELINES: Record<string, Pipeline> = {
+  "scanpy-cluster": {
+    slug: "scanpy-cluster",
+    language: "Python",
+    packages: ["scanpy==1.12.2", "igraph", "leidenalg"],
+    code: SCANPY,
+    inputLabel: "seeded synthetic (no input needed)",
+    sampleInput: "",
+    cloudOnly: true,
+    expectedOutput: `cells=300 genes=60
+n_clusters=7
+cluster_sizes=[81, 53, 48, 42, 35, 25, 16]`,
+    note: "Runs the real Scanpy library (scanpy==1.12.2 + igraph + leidenalg) in an E2B cloud microVM — it can't run in the browser. Verified to reproduce byte-for-byte across independent runs.",
+  },
   "cellineage-vi": {
     slug: "cellineage-vi",
     language: "Python",

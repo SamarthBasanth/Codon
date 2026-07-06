@@ -36,6 +36,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+// Cloud-run server action (E2B microVM) is invoked from this route — give it room.
+export const maxDuration = 60;
 
 export async function generateMetadata({
   params,

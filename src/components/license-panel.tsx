@@ -1,10 +1,13 @@
 import { Check, ScrollText } from "lucide-react";
 import { type Method } from "@/lib/mockData";
+import { resolvePipeline } from "@/lib/pipelines";
 import { Badge } from "./ui/badge";
 import { RunButton } from "./run-button";
+import { CloudRunButton } from "./cloud-run-button";
 import { LicenseButton } from "./license-button";
 
 export function LicensePanel({ method, licensed }: { method: Method; licensed: boolean }) {
+  const cloudOnly = resolvePipeline(method as Parameters<typeof resolvePipeline>[0])?.cloudOnly;
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="border-b border-border px-5 py-4">
@@ -17,7 +20,7 @@ export function LicensePanel({ method, licensed }: { method: Method; licensed: b
       </div>
 
       <div className="space-y-2.5 px-5 py-4">
-        <RunButton method={method} fullWidth />
+        {cloudOnly ? <CloudRunButton method={method} fullWidth /> : <RunButton method={method} fullWidth />}
         <LicenseButton
           slug={method.slug}
           title={method.title}
