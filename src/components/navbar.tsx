@@ -11,10 +11,10 @@ import { buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "/browse", label: "Browse" },
-  { href: "/verification", label: "How it works" },
+  { href: "/browse", label: "Browse methods" },
+  { href: "/reproduce", label: "Reproduce a paper" },
   { href: "/preflight", label: "Preflight" },
-  { href: "/verification#badge", label: "The badge" },
+  { href: "/verification", label: "How it works" },
 ];
 
 export function Navbar() {
