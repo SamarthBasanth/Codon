@@ -14,6 +14,10 @@ export interface Pipeline {
   code: string;
   sampleInput: string;
   inputLabel: string;
+  /** The exact stdout the sample input reproduces — the verified reference,
+   *  captured from the trusted E2B sandbox. Used to show a real
+   *  "reproduces the verified result" verdict when the sample is run. */
+  expectedOutput?: string;
   /** Shown for external-dependency methods (full pipeline runs the real tool). */
   note?: string;
 }
@@ -137,6 +141,10 @@ c3,15,1,2,6,0
 c4,1,11,0,3,8
 c5,9,0,4,5,2
 c6,0,8,1,2,9`,
+    expectedOutput: `cells=6 genes=5
+top_variable_genes=GENE1, GENE2, GENE5
+lineage_A(n=3)=c2,c4,c6
+lineage_B(n=3)=c1,c3,c5`,
   },
   neuroseg3d: {
     slug: "neuroseg3d",
@@ -149,6 +157,9 @@ c6,0,8,1,2,9`,
 12,190,230,225,30
 180,235,240,40,20
 30,33,28,22,18`,
+    expectedOutput: `otsu_threshold=40
+segmented_voxels=11/25 (44.0%)
+mean_intensity_fg=213.6`,
   },
   "dockstream-ad": {
     slug: "dockstream-ad",
@@ -166,6 +177,10 @@ H 0.1 -0.4 0.2
 C -1.8 0.3 1.1
 N 3.2 0.5 -0.6
 O 0.9 1.4 0.8`,
+    expectedOutput: `pocket_center=(0.0,0.0,0.0)
+n_atoms=8 contacts(<4A)=8
+dock_score=-5.53 kcal/mol  (quick rigid score)
+note: full ensemble docking runs AutoDock Vina on the licensed runner`,
   },
 };
 

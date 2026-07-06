@@ -84,6 +84,11 @@ export function RunButton({
     }
   }
 
+  const normalize = (s: string) => s.replace(/\r/g, "").replace(/[ \t]+$/gm, "").trim();
+  const usedSample = !!pipeline && normalize(input) === normalize(pipeline.sampleInput);
+  const ref = pipeline?.expectedOutput ? normalize(pipeline.expectedOutput) : null;
+  const reproducesRef = !!ref && usedSample && !!result && normalize(result.output) === ref;
+
   return (
     <>
       <Button
@@ -206,21 +211,36 @@ export function RunButton({
               ) : (
                 result && (
                   <div className="space-y-4">
-                    <div
-                      className={cn(
-                        "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm",
-                        result.reproduced ? "bg-success-muted text-success" : "bg-warning-muted/40 text-warning",
-                      )}
-                    >
-                      {result.reproduced ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <TriangleAlert className="h-4 w-4" />
-                      )}
-                      {result.reproduced
-                        ? "Reproduced — two executions produced byte-identical output."
-                        : "Output was not deterministic across runs."}
-                    </div>
+                    {reproducesRef ? (
+                      <div className="flex items-start gap-2 rounded-lg bg-success-muted px-3 py-2.5 text-sm text-success">
+                        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                        <div>
+                          <p className="font-semibold">Reproduces the verified result.</p>
+                          <p className="text-xs text-success/90">
+                            This run matches Codon&apos;s reference output byte-for-byte — the method
+                            gives the published answer on your machine.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm",
+                          result.reproduced ? "bg-success-muted text-success" : "bg-warning-muted/40 text-warning",
+                        )}
+                      >
+                        {result.reproduced ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          <TriangleAlert className="h-4 w-4" />
+                        )}
+                        {result.reproduced
+                          ? usedSample
+                            ? "Deterministic — two executions produced byte-identical output."
+                            : "Deterministic on your input — two executions matched byte-for-byte."
+                          : "Output was not deterministic across runs."}
+                      </div>
+                    )}
 
                     <div className="overflow-hidden rounded-lg border border-border bg-muted/40">
                       <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-1.5 font-mono text-xs text-muted-foreground">
