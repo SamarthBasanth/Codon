@@ -112,7 +112,7 @@ export function ProfileEditor({ initial }: { initial: Profile }) {
               className={inputCls}
               value={affiliation}
               onChange={(e) => setAffiliation(e.target.value)}
-              placeholder="e.g. Broad Institute"
+              placeholder="e.g. your institution"
               maxLength={120}
             />
           </Field>
