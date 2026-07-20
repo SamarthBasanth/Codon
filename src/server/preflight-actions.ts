@@ -1,6 +1,8 @@
 "use server";
 
 import { analyze, type AnalysisReport } from "./preflight/analyze";
+import { rateLimit } from "./ratelimit";
+import { headers } from "next/headers";
 
 export interface AnalyzeResult {
   ok: boolean;
@@ -14,6 +16,10 @@ export interface AnalyzeResult {
  * checks + heuristic AI-text screening, returning annotated findings.
  */
 export async function analyzeManuscript(text: string): Promise<AnalyzeResult> {
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = rateLimit(`preflight:${ip}`, 20, 60_000);
+  if (!rl.ok) return { ok: false, error: "Too many analyses in a short window — please wait a moment." };
+
   const t = (text ?? "").slice(0, 24000);
   if (t.trim().length < 40) {
     return { ok: false, error: "Paste at least a paragraph — results and methods sections work best." };

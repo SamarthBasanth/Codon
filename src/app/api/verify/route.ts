@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { verifyOutputs, type Comparison } from "@/server/verify";
+import { rateLimit, clientIp } from "@/server/ratelimit";
 
 /**
  * A live demo of the verification engine running real typed-tolerance diffs.
  * GET runs a built-in example; POST verifies caller-supplied comparisons.
+ * POST is rate-limited and size-capped (it does string diffing on caller input).
  */
 const DEMO: Comparison[] = [
   {
@@ -27,11 +29,22 @@ const DEMO: Comparison[] = [
   },
 ];
 
+const MAX_COMPARISONS = 50;
+const MAX_FIELD = 262_144; // 256 KB per expected/actual string
+
 export async function GET() {
   return NextResponse.json(verifyOutputs(DEMO));
 }
 
 export async function POST(request: Request) {
+  const rl = rateLimit(`verify:${clientIp(request)}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "retry-after": String(Math.ceil(rl.retryAfterMs / 1000)) } },
+    );
+  }
+
   const body = await request.json().catch(() => null);
   if (!body || !Array.isArray(body.comparisons)) {
     return NextResponse.json(
@@ -39,5 +52,14 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  return NextResponse.json(verifyOutputs(body.comparisons as Comparison[]));
+  const comparisons = body.comparisons as Comparison[];
+  if (comparisons.length > MAX_COMPARISONS) {
+    return NextResponse.json({ error: `Too many comparisons (max ${MAX_COMPARISONS}).` }, { status: 413 });
+  }
+  for (const c of comparisons) {
+    if (String(c?.expected ?? "").length > MAX_FIELD || String(c?.actual ?? "").length > MAX_FIELD) {
+      return NextResponse.json({ error: "A comparison field is too large (256 KB max)." }, { status: 413 });
+    }
+  }
+  return NextResponse.json(verifyOutputs(comparisons));
 }

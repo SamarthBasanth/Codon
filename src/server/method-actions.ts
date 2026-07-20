@@ -142,6 +142,33 @@ export async function submitMethod(input: SubmitInput): Promise<SubmitResult> {
 
   const dataFiles = normalizeDataFiles(input.files);
 
+  // Payload caps — reject oversized submissions.
+  const MAX_CODE = 200_000;
+  const MAX_TEXT = 262_144;
+  if (input.code.length > MAX_CODE) return { ok: false, error: "Method code is too large (200 KB max)." };
+  if (
+    input.sampleInput.length > MAX_TEXT ||
+    input.expectedOutput.length > MAX_TEXT ||
+    (input.actualOutput?.length ?? 0) > MAX_TEXT
+  ) {
+    return { ok: false, error: "An input/output field is too large (256 KB max)." };
+  }
+
+  // Durable daily submission cap (defense in depth beyond the in-memory burst limit).
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const { count } = await supabaseAdmin()
+      .from("methods")
+      .select("*", { count: "exact", head: true })
+      .eq("updated_at", today)
+      .eq("data->>submittedBy", user.email);
+    if ((count ?? 0) >= 25) {
+      return { ok: false, error: "Daily submission limit reached (25). Please try again tomorrow." };
+    }
+  } catch {
+    /* best-effort — the in-memory burst limit still applies */
+  }
+
   // Authoritative verification: if Python code is supplied and the sandbox is
   // configured, EXECUTE IT server-side in an isolated E2B microVM and diff its
   // genuine output. This is trusted (not client-reported). Otherwise fall back
