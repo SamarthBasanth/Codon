@@ -83,7 +83,7 @@ export function WaitlistForm() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Dr. Jane Okafor"
+            placeholder="Your name"
             className="h-11 w-full rounded-lg border border-input bg-surface px-3 text-sm placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </label>

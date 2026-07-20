@@ -94,7 +94,7 @@ export function ProfileEditor({ initial }: { initial: Profile }) {
               className={inputCls}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="e.g. Dr. Amara Okafor"
+              placeholder="e.g. your full name"
               maxLength={80}
             />
           </Field>
