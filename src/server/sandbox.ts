@@ -15,6 +15,13 @@ export interface SandboxResult {
   durationMs: number;
 }
 
+/** An extra file made available to the method inside the sandbox working dir. */
+export interface SandboxFile {
+  /** Relative path/name the code can open() — e.g. "data/counts.csv". */
+  path: string;
+  content: string;
+}
+
 export function sandboxConfigured(): boolean {
   return Boolean(process.env.E2B_API_KEY);
 }
@@ -23,6 +30,7 @@ export async function runInSandbox(
   code: string,
   input: string,
   packages: string[] = [],
+  files: SandboxFile[] = [],
 ): Promise<SandboxResult> {
   const apiKey = process.env.E2B_API_KEY;
   if (!apiKey) throw new Error("Sandbox is not configured (E2B_API_KEY missing).");
@@ -36,6 +44,20 @@ export async function runInSandbox(
         `import sys, subprocess\nsubprocess.run([sys.executable, "-m", "pip", "install", "-q", ${list}], check=False)`,
       );
     }
+
+    // Materialize any extra data files the method needs, via the same proven
+    // base64→runCode path as INPUT_DATA (no reliance on a separate FS API).
+    for (const f of files) {
+      if (!f.path) continue;
+      const b64 = Buffer.from(f.content ?? "", "utf8").toString("base64");
+      await sbx.runCode(
+        `import base64, os\n` +
+          `__p = ${JSON.stringify(f.path)}\n` +
+          `os.makedirs(os.path.dirname(__p) or ".", exist_ok=True)\n` +
+          `open(__p, "wb").write(base64.b64decode("${b64}"))`,
+      );
+    }
+
     const b64 = Buffer.from(input ?? "", "utf8").toString("base64");
     await sbx.runCode(`import base64\nINPUT_DATA = base64.b64decode("${b64}").decode("utf-8")`);
     const exec = await sbx.runCode(code);

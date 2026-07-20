@@ -2,6 +2,7 @@
 
 import { getSessionUser } from "./session";
 import { rateLimit } from "./ratelimit";
+import { putMethodFile } from "./storage";
 import { getMyProfile } from "./profile-actions";
 import { supabaseAdmin } from "./supabase";
 import { runInSandbox, sandboxConfigured } from "./sandbox";
@@ -40,6 +41,22 @@ export interface SubmitInput {
   toleranceKind: ToleranceKind;
   atol: number;
   license: "open" | "dual" | "paid" | "sponsored";
+  /** Optional extra data files written into the sandbox (code can open() them). */
+  files?: { name: string; content: string }[];
+}
+
+const MAX_DATA_FILES = 6;
+const MAX_DATA_FILE_BYTES = 256 * 1024;
+
+/** Sanitize + cap the uploaded data files into sandbox-writable form. */
+function normalizeDataFiles(files: SubmitInput["files"]): { path: string; content: string }[] {
+  return (files ?? [])
+    .filter((f) => f && typeof f.name === "string" && f.name.trim())
+    .slice(0, MAX_DATA_FILES)
+    .map((f) => ({
+      path: f.name.trim().replace(/^\/+/, "").replace(/\.\.+/g, "."),
+      content: (f.content ?? "").slice(0, MAX_DATA_FILE_BYTES),
+    }));
 }
 
 export type SubmitResult =
@@ -123,6 +140,8 @@ export async function submitMethod(input: SubmitInput): Promise<SubmitResult> {
   if (!input.title.trim()) return { ok: false, error: "A method title is required." };
   if (!input.expectedOutput.trim()) return { ok: false, error: "An expected output is required to verify." };
 
+  const dataFiles = normalizeDataFiles(input.files);
+
   // Authoritative verification: if Python code is supplied and the sandbox is
   // configured, EXECUTE IT server-side in an isolated E2B microVM and diff its
   // genuine output. This is trusted (not client-reported). Otherwise fall back
@@ -133,7 +152,7 @@ export async function submitMethod(input: SubmitInput): Promise<SubmitResult> {
   if (input.language === "Python" && input.code.trim() && sandboxConfigured()) {
     let run;
     try {
-      run = await runInSandbox(input.code, input.sampleInput, parsePackages(input.packages));
+      run = await runInSandbox(input.code, input.sampleInput, parsePackages(input.packages), dataFiles);
     } catch (e) {
       return { ok: false, error: "Sandbox execution failed: " + (e instanceof Error ? e.message : String(e)) };
     }
@@ -187,6 +206,16 @@ export async function submitMethod(input: SubmitInput): Promise<SubmitResult> {
   const slug = slugify(input.title) + "-" + Math.random().toString(36).slice(2, 6);
   const codonId = "codon.2026.1" + String(Math.floor(Math.random() * 900) + 100);
   const imageDigest = contentHash(input.title + input.language + now);
+
+  // Durable copy of the data files in object storage (best-effort; the inline
+  // runtime.files is the primary source used for re-runs).
+  if (dataFiles.length) {
+    try {
+      await Promise.all(dataFiles.map((f) => putMethodFile(slug, f.path, f.content)));
+    } catch {
+      /* best-effort — inline copy remains */
+    }
+  }
 
   const verification: Verification = {
     id: "ver-" + id,
@@ -252,6 +281,7 @@ export async function submitMethod(input: SubmitInput): Promise<SubmitResult> {
       atol: number;
       inputLabel: string;
       packages: string[];
+      files?: { path: string; content: string }[];
     };
     author?: typeof author;
     submitterId?: string;
@@ -279,6 +309,7 @@ export async function submitMethod(input: SubmitInput): Promise<SubmitResult> {
     files: [
       ...(input.repoUrl.trim() ? [{ name: input.repoUrl.trim(), kind: "file" as const, fileType: "config" as const, size: "git" }] : []),
       { name: input.language === "R" ? "main.R" : "main.py", kind: "file", fileType: "code", size: "—" },
+      ...dataFiles.map((f) => ({ name: f.path, kind: "file" as const, fileType: "data" as const, size: "—" })),
       { name: "README.md", kind: "file", fileType: "doc", size: "—" },
     ],
     sampleInput: { name: "input", format: "text", preview: input.sampleInput.slice(0, 600) || "(none provided)" },
@@ -309,6 +340,7 @@ export async function submitMethod(input: SubmitInput): Promise<SubmitResult> {
             atol: input.atol || 1e-6,
             inputLabel: "input",
             packages: parsePackages(input.packages),
+            files: dataFiles,
           }
         : undefined,
   };

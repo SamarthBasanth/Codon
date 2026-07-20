@@ -124,6 +124,7 @@ export function UploadWizard() {
   const [dataType, setDataType] = useState<string>(DATA_TYPES[0]);
   const [code, setCode] = useState("");
   const [packages, setPackages] = useState("");
+  const [dataFiles, setDataFiles] = useState<{ name: string; content: string }[]>([]);
   const [producedPreview, setProducedPreview] = useState("");
   const [sampleInput, setSampleInput] = useState("");
   const [expectedOutput, setExpectedOutput] = useState("");
@@ -152,7 +153,7 @@ export function UploadWizard() {
       submitMethod({
         title, summary, description, instructions, repoUrl, field, language, organism, dataType,
         code, packages, sampleInput, expectedOutput, actualOutput, executed: false,
-        toleranceKind, atol: parseFloat(atol) || 1e-6, license,
+        toleranceKind, atol: parseFloat(atol) || 1e-6, license, files: dataFiles,
       }),
       new Promise((r) => setTimeout(r, 1600)),
     ]);
@@ -410,6 +411,62 @@ export function UploadWizard() {
                 placeholder="e.g. biopython, pysam"
                 className="font-mono text-xs"
               />
+            </Field>
+            <Field
+              label="Data files"
+              hint="optional — extra files your code can open() in the sandbox (text, ≤256 KB each, up to 6)"
+            >
+              <label className="inline-flex cursor-pointer items-center gap-1 text-xs text-brand hover:underline">
+                <Upload className="h-3 w-3" />
+                attach files
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept=".txt,.csv,.tsv,.json,.dat,.out,.md,.log,.fasta,.fa,.tab,text/*"
+                  onChange={(e) => {
+                    const list = Array.from(e.target.files ?? []);
+                    list.forEach((f) => {
+                      const reader = new FileReader();
+                      reader.onload = () =>
+                        setDataFiles((prev) =>
+                          [
+                            ...prev.filter((x) => x.name !== f.name),
+                            { name: f.name, content: String(reader.result ?? "") },
+                          ].slice(0, 6),
+                        );
+                      reader.readAsText(f);
+                    });
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {dataFiles.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {dataFiles.map((f) => (
+                    <li
+                      key={f.name}
+                      className="flex items-center justify-between rounded border border-border bg-surface px-2 py-1 text-xs"
+                    >
+                      <span className="font-mono">{f.name}</span>
+                      <span className="flex items-center gap-2 text-subtle">
+                        <span>{(f.content.length / 1024).toFixed(1)} KB</span>
+                        <button
+                          type="button"
+                          onClick={() => setDataFiles((p) => p.filter((x) => x.name !== f.name))}
+                          className="text-danger hover:underline"
+                        >
+                          remove
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-1 text-xs text-subtle">
+                Written into the sandbox working dir — your code reads them with{" "}
+                <code className="font-mono text-foreground">open(&quot;name&quot;)</code>.
+              </p>
             </Field>
             <Field label="Expected output" hint="required — the reference a correct run reproduces" action={<FileButton onText={setExpectedOutput} />}>
               <Textarea rows={5} value={expectedOutput} onChange={(e) => setExpectedOutput(e.target.value)} placeholder={"e.g.\nid,score\n0,0.8123\n1,0.2204"} className="font-mono text-xs" />

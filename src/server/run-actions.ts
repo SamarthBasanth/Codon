@@ -71,7 +71,9 @@ export async function runMethodInCloud(slug: string, input: string): Promise<Clo
     }
   }
 
-  const run = await runInSandbox(pipeline.code, input ?? "", pipeline.packages ?? []);
+  const dataFiles =
+    (method as { runtime?: { files?: { path: string; content: string }[] } }).runtime?.files ?? [];
+  const run = await runInSandbox(pipeline.code, input ?? "", pipeline.packages ?? [], dataFiles);
   if (run.error) {
     return { ok: false, error: "exec", message: run.error, durationMs: run.durationMs };
   }
