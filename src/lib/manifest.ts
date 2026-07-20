@@ -1,5 +1,6 @@
 import type { Method } from "./mockData";
 import { SITE_URL } from "./site";
+import { trustScore } from "./trust";
 
 /**
  * Codon Verification Record (CVR) — the machine-readable form of a method's
@@ -8,9 +9,11 @@ import { SITE_URL } from "./site";
  */
 export function toManifest(m: Method) {
   const v = m.verification;
+  const trust = trustScore(m);
   return {
     schema: "codon.verification-record/v1",
     codonId: m.codonId,
+    trust: { score: trust.score, max: trust.max, label: trust.label },
     slug: m.slug,
     title: m.title,
     version: m.version,

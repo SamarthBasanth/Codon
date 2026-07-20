@@ -34,6 +34,7 @@ import { CodeBlock } from "@/components/code-block";
 import { HashChip } from "@/components/hash-chip";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { trustScore } from "@/lib/trust";
 
 export const dynamic = "force-dynamic";
 // Cloud-run server action (E2B microVM) is invoked from this route — give it room.
@@ -359,6 +360,43 @@ export default async function MethodPage({
         <div className="space-y-6">
           <div className="lg:sticky lg:top-20 space-y-6">
             <LicensePanel method={method} licensed={licensed} />
+
+            {/* Trust score — a transparent sum of verified properties */}
+            {(() => {
+              const trust = trustScore(method);
+              return (
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Trust score</h3>
+                    <span className="text-xs font-medium text-muted-foreground">{trust.label}</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-semibold">{trust.score}</span>
+                    <span className="text-sm text-muted-foreground">/ {trust.max}</span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-success"
+                      style={{ width: `${(trust.score / trust.max) * 100}%` }}
+                    />
+                  </div>
+                  <ul className="mt-4 space-y-1.5 text-sm">
+                    {trust.factors.map((f) => (
+                      <li key={f.label} className="flex items-center gap-2">
+                        <span className={f.met ? "text-success" : "text-subtle"}>{f.met ? "✓" : "○"}</span>
+                        <span className={f.met ? "text-foreground/90" : "text-subtle line-through"}>
+                          {f.label}
+                        </span>
+                        <span className="ml-auto text-xs text-subtle">{f.points}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-xs text-subtle">
+                    A transparent sum of verified properties — not a black-box score.
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* Verification summary */}
             <TiltCard className="rounded-xl" max={4}>
