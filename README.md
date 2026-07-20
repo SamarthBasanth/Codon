@@ -1,7 +1,7 @@
 # Codon
 
-**A verified marketplace and reproducibility layer for computational-biology methods.**
-GitHub stores code. Codon verifies the method, stamps the output, and licenses the run.
+**The integrity layer for computational science.**
+GitHub stores code. Codon re-runs the method in a sealed sandbox, confirms it reproduces its declared output, and stamps a content-addressed verification record — so labs, journals, and AI systems can pull verified science, not noise.
 
 🔗 **Live:** https://codon-six.vercel.app
 
