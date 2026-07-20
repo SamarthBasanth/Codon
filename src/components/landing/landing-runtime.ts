@@ -244,18 +244,8 @@ export function initLanding(root: HTMLElement): () => void {
   function buildInstitutions() {
     const G = (t: string, c: string, w: number, fam: string, sz: number, extra = "") =>
       `<svg width="${w}" height="28" viewBox="0 0 ${w} 28"><text y="20" font-family="${fam}" font-size="${sz}" fill="${c}" opacity=".8"${extra}>${t}</text></svg>`;
-    const MARKS: Record<string, string> = {
-      BI: G("Broad", "#2E3A6E", 72, "var(--font-eb-garamond),serif", 15),
-      EE: G("EMBL", "#3F7A52", 64, MONO, 13),
-      CZ: G("CZB", "#9A7B33", 54, MONO, 13),
-      WS: G("Sanger", "#2E3A6E", 76, "var(--font-eb-garamond),serif", 15),
-      MC: G("MIT", "#1E2228", 44, MONO, 16, ` font-weight="600" letter-spacing="-1"`),
-      CS: G("CSHL", "#3F7A52", 52, MONO, 13),
-      SX: G("Stanford", "#9A7B33", 70, "var(--font-eb-garamond),serif", 15),
-      MP: G("MPG", "#2E3A6E", 56, MONO, 13),
-      CI: G("Crick", "#3F7A52", 48, "var(--font-eb-garamond),serif", 15),
-      AI: G("Allen", "#9A7B33", 54, "var(--font-eb-garamond),serif", 15),
-    };
+    // Institution wordmarks removed — Codon implies no third-party endorsements.
+    const MARKS: Record<string, string> = {};
     $$("[data-inst]").forEach((el) => {
       const mono = el.getAttribute("data-mono") || "";
       const name = el.getAttribute("data-name") || "";

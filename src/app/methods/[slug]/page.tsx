@@ -275,16 +275,18 @@ export default async function MethodPage({
             </TabsContent>
 
             <TabsContent value="reviews" className="mt-6">
-              <div className="mb-5 flex items-center gap-4 rounded-xl border border-border bg-card p-5">
-                <div className="text-center">
-                  <p className="text-3xl font-semibold">{method.stats.rating}</p>
-                  <Stars rating={method.stats.rating} />
-                  <p className="mt-1 text-xs text-muted-foreground">{method.stats.reviewCount} reviews</p>
+              {method.stats.reviewCount > 0 && (
+                <div className="mb-5 flex items-center gap-4 rounded-xl border border-border bg-card p-5">
+                  <div className="text-center">
+                    <p className="text-3xl font-semibold">{method.stats.rating}</p>
+                    <Stars rating={method.stats.rating} />
+                    <p className="mt-1 text-xs text-muted-foreground">{method.stats.reviewCount} reviews</p>
+                  </div>
+                  <div className="flex-1 border-l border-border pl-4 text-sm text-muted-foreground">
+                    Independently verified and reproducible.
+                  </div>
                 </div>
-                <div className="flex-1 border-l border-border pl-4 text-sm text-muted-foreground">
-                  Verified, reproducible, and reused across {formatNumber(method.stats.runs)} runs.
-                </div>
-              </div>
+              )}
               {method.reviews.length > 0 ? (
                 <ul className="space-y-4">
                   {method.reviews.map((r, i) => (
@@ -394,6 +396,12 @@ export default async function MethodPage({
                   <p className="mt-3 text-xs text-subtle">
                     A transparent sum of verified properties — not a black-box score.
                   </p>
+                  <a
+                    href={`/methods/${method.slug}/manifest.json`}
+                    className="mt-3 inline-block text-xs font-medium text-brand hover:underline"
+                  >
+                    Machine-readable record (JSON) →
+                  </a>
                 </div>
               );
             })()}

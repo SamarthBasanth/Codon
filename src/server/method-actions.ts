@@ -1,6 +1,7 @@
 "use server";
 
 import { getSessionUser } from "./session";
+import { rateLimit } from "./ratelimit";
 import { getMyProfile } from "./profile-actions";
 import { supabaseAdmin } from "./supabase";
 import { runInSandbox, sandboxConfigured } from "./sandbox";
@@ -112,6 +113,10 @@ function pricingFor(m: SubmitInput["license"]): Pricing {
 export async function submitMethod(input: SubmitInput): Promise<SubmitResult> {
   const user = await getSessionUser();
   if (!user) return { ok: false, error: "You must be signed in to submit a method." };
+
+  // Each submission runs the code in a real E2B sandbox — burst-limit per user.
+  const rl = rateLimit(`submit:${user.id}`, 5, 10 * 60_000);
+  if (!rl.ok) return { ok: false, error: "Too many submissions in a short window — please wait a few minutes." };
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) {
     return { ok: false, error: "Database is not configured." };
   }

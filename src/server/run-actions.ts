@@ -2,6 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { getSessionUser } from "./session";
+import { rateLimit } from "./ratelimit";
 import { runInSandbox, sandboxConfigured } from "./sandbox";
 import { getMethodDetail } from "./methods";
 import { resolvePipeline } from "@/lib/pipelines";
@@ -33,6 +34,13 @@ function supaOk(): boolean {
 export async function runMethodInCloud(slug: string, input: string): Promise<CloudRunResult> {
   const user = await getSessionUser();
   if (!user) return { ok: false, error: "auth" };
+
+  // Burst gate on top of the durable daily cap (E2B costs money).
+  const rl = rateLimit(`cloudrun:${user.id}`, 5, 60_000);
+  if (!rl.ok) {
+    return { ok: false, error: "limit", message: "Too many runs in a short window — try again in a moment.", remaining: 0 };
+  }
+
   if (!sandboxConfigured()) return { ok: false, error: "unconfigured", message: "Cloud sandbox is not configured." };
 
   const method = await getMethodDetail(slug);

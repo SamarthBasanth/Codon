@@ -1,5 +1,6 @@
 import { getAllMethods } from "@/server/methods";
 import { toManifest } from "@/lib/manifest";
+import { rateLimit, clientIp } from "@/server/ratelimit";
 
 /**
  * Corpus export — the whole verified catalog as JSON Lines (one CVR per line).
@@ -10,6 +11,14 @@ import { toManifest } from "@/lib/manifest";
  *   GET /api/corpus?verified=1 → only reproduced/verified methods
  */
 export async function GET(request: Request) {
+  const rl = rateLimit(`corpus:${clientIp(request)}`, 60, 60_000);
+  if (!rl.ok) {
+    return new Response("Too Many Requests", {
+      status: 429,
+      headers: { "retry-after": String(Math.ceil(rl.retryAfterMs / 1000)) },
+    });
+  }
+
   const url = new URL(request.url);
   const verifiedOnly = ["1", "true"].includes((url.searchParams.get("verified") || "").toLowerCase());
 

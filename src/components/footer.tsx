@@ -71,7 +71,10 @@ export function Footer() {
         </div>
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-subtle sm:flex-row">
           <p>© {new Date().getFullYear()} Codon. Verified, reproducible scientific software.</p>
-          <p className="font-mono">GitHub stores code · Codon makes it trusted.</p>
+          <p className="font-mono">
+            <a href="/api/corpus" className="hover:text-foreground">Corpus API (JSONL)</a> · GitHub
+            stores code, Codon makes it trusted.
+          </p>
         </div>
       </div>
     </footer>
