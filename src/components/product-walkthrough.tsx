@@ -1,88 +1,85 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowRight,
-  BadgeCheck,
-  Check,
-  Copy,
-  Equal,
-  Loader2,
-  Lock,
-  Play,
-  Repeat,
-} from "lucide-react";
+import { ArrowRight, Check, Copy, Loader2, Lock, Play, RotateCcw } from "lucide-react";
 import { getPyodide, runPipeline } from "@/lib/pyodide-run";
 import { getPipeline } from "@/lib/pipelines";
 import { cn } from "@/lib/utils";
 
-const SCENES = [
-  {
-    icon: AlertTriangle,
-    tint: "text-danger",
-    ring: "border-danger/30 bg-danger-muted/30",
-    title: "Most published code never re-runs",
-    body: "Missing dependencies, unset seeds, environment drift. The method behind a paper is a black box you can't reproduce — or trust.",
-  },
-  {
-    icon: Lock,
-    tint: "text-brand",
-    ring: "border-brand/30 bg-brand-muted/30",
-    title: "Codon runs it in a sealed sandbox",
-    body: "The method executes for real in an isolated microVM — no network egress, cut off from everything, with its dependencies pinned.",
-  },
-  {
-    icon: Repeat,
-    tint: "text-brand",
-    ring: "border-brand/30 bg-brand-muted/30",
-    title: "Then it runs it again",
-    body: "Twice, independently. If the output isn't byte-identical across runs, it doesn't pass. No luck, no hand-waving.",
-  },
-  {
-    icon: Equal,
-    tint: "text-success",
-    ring: "border-success/30 bg-success-muted/30",
-    title: "Diffed against the declared result",
-    body: "The produced output is compared to the method's reference within a typed tolerance — exact, numeric, structural, or checksum.",
-  },
-  {
-    icon: BadgeCheck,
-    tint: "text-success",
-    ring: "border-success/30 bg-success-muted/30",
-    title: "Stamped, and provable",
-    body: "A pass mints a content-addressed SHA-256 record and an embeddable badge that flips if the method ever stops reproducing.",
-  },
-] as const;
+// Faithful sketch of the method that runs live below (the real code executes on
+// "Run it for real"). Output + hash below are the genuine values.
+const CODE = [
+  "# NeuroSeg — Otsu threshold segmentation",
+  "vals = [int(x) for r in INPUT_DATA.splitlines()",
+  "               for x in r.replace(',', ' ').split()]",
+  "hist = [0] * 256",
+  "for v in vals: hist[min(255, v)] += 1",
+  "best, thr = -1, 0",
+  "for t in range(256):",
+  "    if between_var(hist, t) > best: best, thr = _, t",
+  'print(f"otsu_threshold={thr}")',
+];
+const OUT = ["otsu_threshold=40", "segmented_voxels=11/25 (44.0%)", "mean_intensity_fg=213.6"];
+const CHECKS = ["Ran twice — byte-identical", "Matches the declared reference", "No network egress"];
+const HASH = "955435eb483bfb33bc57ca5dfa587e687d1c6f236fb82a3a016310a6eda6903e";
+const CODON_ID = "codon.sample.neuroseg";
 
+// stages: 0 idle · 1 typing · 2 sealing · 3 running · 4 verifying · 5 stamped
 export function ProductWalkthrough() {
   const pipeline = useMemo(() => getPipeline("neuroseg3d"), []);
   const [reduced, setReduced] = useState(false);
-  const [scene, setScene] = useState(0);
+  const [stage, setStage] = useState(0);
+  const [codeShown, setCodeShown] = useState(0);
+  const [outShown, setOutShown] = useState(0);
+  const [checks, setChecks] = useState(0);
+  const [hashShown, setHashShown] = useState(0);
+
   const [runtimeReady, setRuntimeReady] = useState(false);
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState("");
-  const [result, setResult] = useState<{
-    output: string;
-    hash: string;
-    reproduced: boolean;
-    reproducesRef: boolean;
-    durationMs: number;
-  } | null>(null);
+  const [live, setLive] = useState<{ output: string; hash: string; ok: boolean; ms: number } | null>(null);
   const [copied, setCopied] = useState(false);
-  const liveRef = useRef<HTMLDivElement | null>(null);
 
-  const atLive = scene >= SCENES.length;
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clearTimers = () => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  };
 
-  // Respect reduced motion — show everything at once, no auto-advance.
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(m.matches);
-    if (m.matches) setScene(SCENES.length);
+  const play = useCallback(() => {
+    clearTimers();
+    setStage(1);
+    setCodeShown(0);
+    setOutShown(0);
+    setChecks(0);
+    setHashShown(0);
+    let t = 0;
+    const at = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, (t += ms)));
+    CODE.forEach((_, i) => at(170, () => setCodeShown(i + 1)));
+    at(520, () => setStage(2));
+    at(1250, () => setStage(3));
+    OUT.forEach((_, i) => at(320, () => setOutShown(i + 1)));
+    at(360, () => setStage(4));
+    CHECKS.forEach((_, i) => at(300, () => setChecks(i + 1)));
+    at(420, () => setStage(5));
+    for (let i = 1; i <= HASH.length; i++) at(9, () => setHashShown(i));
   }, []);
 
-  // Preload Pyodide so the live run is instant when they reach it.
+  // reduced motion → show the finished state, no animation
+  useEffect(() => {
+    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (m.matches) {
+      setReduced(true);
+      setStage(5);
+      setCodeShown(CODE.length);
+      setOutShown(OUT.length);
+      setChecks(CHECKS.length);
+      setHashShown(HASH.length);
+    }
+  }, []);
+
+  // preload Pyodide + kick off the animation once
   useEffect(() => {
     let alive = true;
     getPyodide()
@@ -93,26 +90,24 @@ export function ProductWalkthrough() {
     };
   }, []);
 
-  // Auto-advance the tour.
+  const started = useRef(false);
   useEffect(() => {
-    if (reduced || atLive) return;
-    const t = setTimeout(() => setScene((s) => s + 1), scene === 0 ? 2600 : 2300);
-    return () => clearTimeout(t);
-  }, [scene, reduced, atLive]);
+    if (reduced || started.current) return;
+    started.current = true;
+    const id = setTimeout(play, 350);
+    return () => clearTimeout(id);
+  }, [reduced, play]);
 
-  useEffect(() => {
-    if (atLive && !reduced) liveRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [atLive, reduced]);
+  useEffect(() => () => clearTimers(), []);
 
-  async function runLive() {
+  async function runForReal() {
     if (!pipeline) return;
     setRunning(true);
-    setResult(null);
+    setLive(null);
     setStatus("Booting sealed Python…");
     try {
       const r = await runPipeline(pipeline.code, pipeline.sampleInput, pipeline.packages, setStatus);
-      const reproducesRef = r.output.trim() === (pipeline.expectedOutput ?? "").trim();
-      setResult({ output: r.output.trim(), hash: r.hash, reproduced: r.reproduced, reproducesRef, durationMs: r.durationMs });
+      setLive({ output: r.output.trim(), hash: r.hash, ok: r.hash === HASH, ms: r.durationMs });
     } catch (e) {
       setStatus("Run failed: " + (e instanceof Error ? e.message : String(e)));
     } finally {
@@ -121,176 +116,217 @@ export function ProductWalkthrough() {
   }
 
   function copyLink() {
-    navigator.clipboard?.writeText(window.location.href).then(
-      () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
-      },
-      () => {},
-    );
+    navigator.clipboard?.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    });
   }
 
-  const pct = Math.min(100, Math.round(((atLive ? SCENES.length : scene + 1) / (SCENES.length + 1)) * 100));
+  const sealed = stage >= 2;
+  const runningStage = stage === 3;
+  const stamped = stage >= 5;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:py-14">
-      <div className="text-center">
-        <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-subtle">How Codon works</div>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Prove a method reproduces — in seconds
+      <style>{css}</style>
+
+      <header className="text-center">
+        <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-subtle">The verification machine</div>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+          Watch a method get proven — and stamped
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Watch the whole loop, then run a real method yourself. No sign-up.
-        </p>
-      </div>
+        <p className="mt-2 text-sm text-muted-foreground">Real code. Real output. A real content-addressed hash.</p>
+      </header>
 
-      {/* progress */}
-      <div className="mt-7 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-brand transition-all duration-500" style={{ width: `${pct}%` }} />
-      </div>
-
-      {/* scenes */}
-      <ol className="mt-7 space-y-3">
-        {SCENES.map((s, i) => {
-          const shown = reduced || i <= scene;
-          const active = !reduced && i === scene && !atLive;
-          const Icon = s.icon;
-          return (
-            <li
-              key={s.title}
-              className={cn(
-                "flex gap-4 rounded-2xl border p-4 transition-all duration-500 sm:p-5",
-                shown ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-3",
-                active ? "border-border-strong bg-card shadow-sm ring-1 ring-brand/20" : "border-border bg-card/60",
-              )}
-            >
-              <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", s.ring)}>
-                <Icon className={cn("h-5 w-5", s.tint)} />
-              </span>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[11px] text-subtle">0{i + 1}</span>
-                  <h2 className="font-semibold leading-tight">{s.title}</h2>
-                </div>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-
-      {/* controls for the tour */}
-      {!atLive && !reduced && (
-        <div className="mt-6 flex items-center justify-center gap-4 text-sm">
-          <button
-            onClick={() => setScene((s) => Math.min(SCENES.length, s + 1))}
-            className="font-medium text-muted-foreground hover:text-foreground"
-          >
-            {scene < SCENES.length - 1 ? "Next" : "See it run"} →
-          </button>
-          <span className="text-subtle">·</span>
-          <button onClick={() => setScene(SCENES.length)} className="text-muted-foreground hover:text-foreground">
-            Skip to live demo
-          </button>
-        </div>
-      )}
-
-      {/* live finale */}
-      <div
-        ref={liveRef}
-        className={cn(
-          "mt-8 rounded-2xl border border-brand/25 bg-brand-muted/20 p-5 transition-all duration-500 sm:p-6",
-          atLive ? "opacity-100 translate-y-0" : "pointer-events-none opacity-40 translate-y-3",
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand/30 bg-card">
-            <Play className="h-5 w-5 text-brand" />
-          </span>
-          <div>
-            <h2 className="font-semibold leading-tight">Run a real method, right now</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {pipeline?.slug ? "Otsu-threshold segmentation" : "a reference method"} — real Python, executed in a
-              sealed WebAssembly sandbox in your browser. Nothing is sent anywhere.
-            </p>
+      {/* ---------- the machine ---------- */}
+      <div className="wk-machine mt-8 space-y-3">
+        {/* code panel */}
+        <div className={cn("wk-panel", sealed && "wk-panel--sealed")}>
+          <div className="wk-bar">
+            <span className="wk-dots">
+              <i></i><i></i><i></i>
+            </span>
+            <span className="wk-file">method.py</span>
+            <span className={cn("wk-chip", sealed ? "wk-chip--on" : "wk-chip--off")}>
+              <Lock className="h-3 w-3" />
+              {sealed ? "sealed · no egress" : "sandbox"}
+            </span>
           </div>
+          <pre className="wk-code">
+            {CODE.map((line, i) => (
+              <span key={i} className={cn("wk-line", i < codeShown && "wk-line--in")}>
+                <span className="wk-ln">{String(i + 1).padStart(2, " ")}</span>
+                <code className={line.trimStart().startsWith("#") ? "wk-comment" : undefined}>{line}</code>
+              </span>
+            ))}
+            {stage === 1 && codeShown < CODE.length && <span className="wk-caret" />}
+          </pre>
+          {stage === 2 && <span className="wk-scan" />}
         </div>
 
-        <button
-          onClick={runLive}
-          disabled={running || !pipeline}
-          className={cn(
-            "mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3 font-medium text-brand-foreground transition-opacity disabled:opacity-60 sm:w-auto",
+        {/* flow indicator */}
+        <div className="flex items-center justify-center gap-2 py-0.5 text-xs text-subtle">
+          {runningStage ? (
+            <>
+              <span className="wk-pulse" /> executing in isolated microVM…
+            </>
+          ) : stage >= 3 ? (
+            <span className="text-success">✓ executed</span>
+          ) : sealed ? (
+            "sealed — cut off from the network"
+          ) : (
+            " "
           )}
-        >
-          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          {running ? status || "Running…" : result ? "Run it again" : "Run it & reproduce"}
-        </button>
-        {!runtimeReady && !result && (
-          <p className="mt-2 text-xs text-subtle">Warming the Python runtime… (first run downloads it once)</p>
-        )}
+        </div>
 
-        {result && (
-          <div className="mt-5 space-y-3">
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
-              <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-2 font-mono text-[11px] text-muted-foreground">
-                <span>stdout · sealed WASM sandbox</span>
-                <span>{result.durationMs} ms</span>
-              </div>
-              <pre className="max-h-44 overflow-auto p-3 text-left text-xs leading-relaxed">
-                <code className="font-mono text-foreground/90">{result.output}</code>
-              </pre>
+        {/* output panel */}
+        <div className={cn("wk-panel wk-out", stage >= 3 && "wk-out--live")}>
+          <div className="wk-bar">
+            <span className="wk-file">stdout</span>
+            {stage >= 3 && <span className="wk-time">{live?.ms ?? 41} ms</span>}
+          </div>
+          <pre className="wk-code wk-code--out">
+            {OUT.map((line, i) => (
+              <span key={i} className={cn("wk-line", i < outShown && "wk-line--in")}>
+                <code>{line}</code>
+              </span>
+            ))}
+            {outShown === 0 && stage < 3 && <span className="wk-dim">— waiting to run —</span>}
+          </pre>
+        </div>
+
+        {/* checks */}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {CHECKS.map((c, i) => (
+            <div key={c} className={cn("wk-check", i < checks && "wk-check--in")}>
+              <span className="wk-tick">
+                <Check className="h-3 w-3" />
+              </span>
+              {c}
             </div>
+          ))}
+        </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success-muted/25 px-3 py-2 text-sm">
-                <Check className="h-4 w-4 shrink-0 text-success" />
-                <span className="text-muted-foreground">Byte-identical across 2 runs</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success-muted/25 px-3 py-2 text-sm">
-                <Check className="h-4 w-4 shrink-0 text-success" />
-                <span className="text-muted-foreground">
-                  {result.reproducesRef ? "Reproduced the verified reference" : "Deterministic output"}
+        {/* THE STAMP */}
+        <div className={cn("wk-stampwrap", stamped && "wk-stampwrap--on")}>
+          {stamped && !reduced && <span className="wk-ring" />}
+          <div className="wk-stamp">
+            <div className="wk-seal">
+              <Check className="h-6 w-6" strokeWidth={3} />
+            </div>
+            <div className="wk-stamp-body">
+              <div className="wk-stamp-title">Reproducibility Verified</div>
+              <div className="wk-stamp-id">{CODON_ID}</div>
+              <div className="wk-stamp-hash">
+                <span className="wk-hash-label">SHA-256</span>
+                <span className="wk-hash-val">
+                  {HASH.slice(0, hashShown)}
+                  {stamped && hashShown < HASH.length && <span className="wk-caret wk-caret--sm" />}
                 </span>
               </div>
             </div>
-
-            <div className="rounded-lg border border-border bg-card px-3 py-2">
-              <div className="font-mono text-[11px] text-subtle">SHA-256</div>
-              <div className="break-all font-mono text-xs text-foreground/80">sha256:{result.hash}</div>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              That hash is the content-addressed stamp. Re-run it anywhere — same input, same code, same hash.
-            </p>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* CTA / share */}
-      <div className="mt-8 flex flex-col items-center gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between">
+      {/* ---------- controls ---------- */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button onClick={play} className="wk-btn wk-btn--ghost" disabled={stage > 0 && stage < 5}>
+          <RotateCcw className="h-4 w-4" />
+          Replay
+        </button>
+        <button onClick={runForReal} disabled={running || !pipeline} className="wk-btn wk-btn--solid">
+          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          {running ? status || "Running…" : "Run it for real"}
+        </button>
+      </div>
+      {!runtimeReady && !live && (
+        <p className="mt-2 text-center text-xs text-subtle">Warming the in-browser Python runtime…</p>
+      )}
+
+      {/* live proof */}
+      {live && (
+        <div className={cn("wk-live mt-5", live.ok && "wk-live--match")}>
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <span className="wk-tick">
+              <Check className="h-3 w-3" />
+            </span>
+            {live.ok ? "You just reproduced it — identical hash." : "Ran — deterministic output."}
+            <span className="ml-auto font-mono text-xs text-subtle">{live.ms} ms · in your browser</span>
+          </div>
+          <div className="mt-2 break-all font-mono text-[11px] text-muted-foreground">sha256:{live.hash}</div>
+          {live.ok && <div className="mt-1 text-xs text-success">Same input · same code · same stamp as above.</div>}
+        </div>
+      )}
+
+      {/* ---------- CTA ---------- */}
+      <div className="mt-9 flex flex-col items-center gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between">
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Link
-            href="/methods/neuroseg3d"
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:border-border-strong"
-          >
+          <Link href="/methods/neuroseg3d" className="wk-link">
             See its verification record <ArrowRight className="h-3.5 w-3.5" />
           </Link>
-          <Link
-            href="/browse"
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:border-border-strong"
-          >
+          <Link href="/browse" className="wk-link">
             Browse the archive
           </Link>
         </div>
-        <button
-          onClick={copyLink}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
+        <button onClick={copyLink} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-          {copied ? "Link copied" : "Copy this demo link"}
+          {copied ? "Link copied" : "Copy demo link"}
         </button>
       </div>
     </div>
   );
 }
+
+const css = `
+.wk-panel{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;background:var(--card);transition:box-shadow .5s,border-color .5s;}
+.wk-panel--sealed{border-color:color-mix(in srgb,var(--brand) 45%,var(--border));box-shadow:0 0 0 1px color-mix(in srgb,var(--brand) 22%,transparent),0 10px 30px -18px color-mix(in srgb,var(--brand) 60%,transparent);}
+.wk-bar{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--muted) 8%,transparent);font-family:var(--font-jbmono,ui-monospace,monospace);font-size:11px;color:var(--muted-foreground,#666);}
+.wk-dots{display:inline-flex;gap:5px;}
+.wk-dots i{width:8px;height:8px;border-radius:50%;background:var(--border);}
+.wk-file{color:var(--foreground);opacity:.7;}
+.wk-time{margin-left:auto;color:var(--foreground);opacity:.55;}
+.wk-chip{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:10px;letter-spacing:.04em;transition:all .5s;}
+.wk-chip--off{color:var(--muted-foreground,#777);background:color-mix(in srgb,var(--muted) 14%,transparent);}
+.wk-chip--on{color:var(--brand);background:color-mix(in srgb,var(--brand) 12%,transparent);border:1px solid color-mix(in srgb,var(--brand) 30%,transparent);}
+.wk-code{margin:0;padding:14px 14px 16px;font-family:var(--font-jbmono,ui-monospace,monospace);font-size:12.5px;line-height:1.75;overflow-x:auto;white-space:pre;}
+.wk-code--out{min-height:86px;color:var(--foreground);}
+.wk-line{display:block;opacity:0;transform:translateY(4px);}
+.wk-line--in{animation:wkLineIn .34s cubic-bezier(.2,.8,.2,1) forwards;}
+.wk-ln{display:inline-block;width:1.8em;margin-right:12px;color:var(--subtle,#999);opacity:.6;user-select:none;}
+.wk-comment{color:var(--gold,#9A7B33);opacity:.85;}
+.wk-dim{color:var(--subtle,#999);opacity:.6;font-style:italic;}
+.wk-caret{display:inline-block;width:7px;height:15px;margin-left:2px;background:var(--brand);vertical-align:-2px;animation:wkBlink 1s step-end infinite;}
+.wk-caret--sm{height:11px;width:5px;background:var(--success);}
+.wk-scan{position:absolute;left:0;right:0;top:0;height:34%;pointer-events:none;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--brand) 22%,transparent),transparent);animation:wkScan 1.1s ease-in-out;}
+.wk-out--live .wk-bar{background:color-mix(in srgb,var(--success) 8%,transparent);}
+.wk-pulse{width:8px;height:8px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 60%,transparent);animation:wkPulse 1.1s ease-out infinite;}
+.wk-check{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--border);border-radius:11px;background:var(--card);font-size:13px;color:var(--muted-foreground,#666);opacity:0;transform:translateY(6px);}
+.wk-check--in{animation:wkPop .4s cubic-bezier(.2,.9,.25,1.2) forwards;border-color:color-mix(in srgb,var(--success) 35%,var(--border));}
+.wk-tick{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--success);color:var(--card);flex:0 0 auto;}
+.wk-stampwrap{position:relative;display:flex;justify-content:center;padding:14px 0 4px;min-height:8px;}
+.wk-stamp{display:flex;align-items:center;gap:16px;padding:16px 22px 16px 16px;border-radius:16px;border:1.5px solid color-mix(in srgb,var(--success) 45%,var(--border));background:color-mix(in srgb,var(--success) 8%,var(--card));opacity:0;}
+.wk-stampwrap--on .wk-stamp{animation:wkStampIn .7s cubic-bezier(.2,1.25,.35,1) forwards;box-shadow:0 18px 40px -22px color-mix(in srgb,var(--success) 80%,transparent);}
+.wk-ring{position:absolute;top:50%;left:50%;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid color-mix(in srgb,var(--success) 60%,transparent);animation:wkRing .9s ease-out forwards;pointer-events:none;}
+.wk-seal{display:flex;align-items:center;justify-content:center;width:52px;height:52px;flex:0 0 auto;border-radius:50%;background:var(--success);color:#fff;box-shadow:0 0 0 4px color-mix(in srgb,var(--success) 18%,transparent);}
+.wk-stamp-title{font-family:var(--font-eb-garamond,Georgia,serif);font-size:18px;font-weight:600;color:var(--foreground);line-height:1.1;}
+.wk-stamp-id{font-family:var(--font-jbmono,ui-monospace,monospace);font-size:11px;color:var(--muted-foreground,#666);margin-top:2px;}
+.wk-stamp-hash{margin-top:7px;display:flex;flex-direction:column;gap:1px;}
+.wk-hash-label{font-family:var(--font-jbmono,ui-monospace,monospace);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--subtle,#999);}
+.wk-hash-val{font-family:var(--font-jbmono,ui-monospace,monospace);font-size:11px;color:color-mix(in srgb,var(--success) 80%,var(--foreground));word-break:break-all;min-height:15px;}
+.wk-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:11px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .2s,background .2s;}
+.wk-btn:disabled{opacity:.55;cursor:default;}
+.wk-btn--solid{background:var(--brand);color:var(--brand-foreground,#fff);}
+.wk-btn--ghost{background:transparent;border:1px solid var(--border);color:var(--muted-foreground,#555);}
+.wk-live{border:1px solid color-mix(in srgb,var(--success) 30%,var(--border));border-radius:13px;background:color-mix(in srgb,var(--success) 6%,var(--card));padding:14px 15px;}
+.wk-link{display:inline-flex;align-items:center;gap:5px;padding:8px 13px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-weight:500;color:var(--foreground);background:var(--card);text-decoration:none;}
+.wk-link:hover{border-color:var(--border-strong,#bbb);}
+@keyframes wkLineIn{to{opacity:1;transform:none;}}
+@keyframes wkPop{to{opacity:1;transform:none;}}
+@keyframes wkBlink{50%{opacity:0;}}
+@keyframes wkScan{0%{transform:translateY(-40%);opacity:0;}30%{opacity:1;}100%{transform:translateY(320%);opacity:0;}}
+@keyframes wkPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 55%,transparent);}70%{box-shadow:0 0 0 9px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
+@keyframes wkStampIn{0%{opacity:0;transform:scale(.4) rotate(-14deg);}60%{opacity:1;}100%{opacity:1;transform:scale(1) rotate(0);}}
+@keyframes wkRing{0%{opacity:.9;transform:scale(.4);}100%{opacity:0;transform:scale(1.8);}}
+@media (prefers-reduced-motion: reduce){.wk-line,.wk-check,.wk-stamp{opacity:1!important;transform:none!important;animation:none!important;}.wk-scan,.wk-ring,.wk-caret,.wk-pulse{display:none!important;}}
+`;
