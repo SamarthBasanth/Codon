@@ -6,8 +6,11 @@ import {
   AlertTriangle,
   ArrowRight,
   BadgeCheck,
+  BookText,
+  Brain,
   Check,
   Copy,
+  FlaskConical,
   Loader2,
   Lock,
   Pause,
@@ -15,6 +18,7 @@ import {
   Repeat,
   RotateCcw,
   Users,
+  WifiOff,
 } from "lucide-react";
 import { getPyodide, runPipeline } from "@/lib/pyodide-run";
 import { getPipeline } from "@/lib/pipelines";
@@ -217,6 +221,58 @@ export function ProductWalkthrough() {
 
   const toneClass = (t: Scene["tone"]) => (t === "danger" ? "sc--danger" : t === "success" ? "sc--success" : "sc--brand");
 
+  // A small illustrative animation under each info scene.
+  const renderVisual = (i: number) => {
+    switch (i) {
+      case 0:
+        return (
+          <div className="mv-term" aria-hidden>
+            <div className="mv-term-bar"><i></i><i></i><i></i><span style={{ marginLeft: 6 }}>bash</span></div>
+            <div className="mv-term-body">
+              <div className="mv-tl mv-d1">$ python run_analysis.py</div>
+              <div className="mv-tl mv-err mv-d2">ModuleNotFoundError: no module &apos;scanpy&apos;</div>
+              <div className="mv-tl mv-err mv-x">✕ could not reproduce</div>
+            </div>
+          </div>
+        );
+      case 1:
+        return (
+          <div className="mv-seal" aria-hidden>
+            <span className="mv-chip">method.py</span>
+            <span className="mv-lock"><Lock className="h-4 w-4" /></span>
+            <span className="mv-net"><WifiOff className="h-3.5 w-3.5" /> no network</span>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="mv-match" aria-hidden>
+            <span className="mv-run">run 1<b>a1b2c3</b></span>
+            <span className="mv-eq">=</span>
+            <span className="mv-run mv-d2b">run 2<b>a1b2c3</b></span>
+            <span className="mv-ok"><Check className="h-4 w-4" /></span>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="mv-stampbox" aria-hidden>
+            <span className="mv-ripple" />
+            <span className="mv-seal2"><Check className="h-6 w-6" strokeWidth={3} /></span>
+            <span className="mv-recline">codon.record · sha256:9554…</span>
+          </div>
+        );
+      case 4:
+        return (
+          <div className="mv-who" aria-hidden>
+            <div className="mv-wc mv-w1"><Brain className="h-5 w-5" /><span>AI labs</span></div>
+            <div className="mv-wc mv-w2"><BookText className="h-5 w-5" /><span>Journals</span></div>
+            <div className="mv-wc mv-w3"><FlaskConical className="h-5 w-5" /><span>Research teams</span></div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
       <style>{css}</style>
@@ -259,13 +315,7 @@ export function ProductWalkthrough() {
             <div className="scene-eyebrow">{SCENES[scene].eyebrow}</div>
             <h2 className="scene-head">{SCENES[scene].head}</h2>
             <p className="scene-sub">{SCENES[scene].sub}</p>
-            {SCENES[scene].chips && (
-              <div className="scene-chips">
-                {SCENES[scene].chips!.map((c) => (
-                  <span key={c} className="scene-chip">{c}</span>
-                ))}
-              </div>
-            )}
+            <div className="scene-visual">{renderVisual(scene)}</div>
           </div>
         ) : (
           /* ---------- machine finale ---------- */
@@ -419,7 +469,8 @@ const css = `
 .reel-fill--paused{animation-play-state:paused;}
 @keyframes reelFill{from{width:0}to{width:100%}}
 
-.reel-frame{position:relative;min-height:340px;display:flex;align-items:center;justify-content:center;}
+.reel-frame{position:relative;min-height:420px;display:flex;align-items:center;justify-content:center;}
+.scene-visual{margin-top:24px;width:100%;display:flex;justify-content:center;}
 .scene{width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;animation:sceneIn .55s cubic-bezier(.2,.8,.2,1) both;}
 .scene--machine{animation:sceneIn .5s ease both;}
 .scene-badge{display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:18px;margin-bottom:18px;}
@@ -435,6 +486,40 @@ const css = `
 .scene-chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin-top:20px;}
 .scene-chip{font-family:var(--font-jbmono,ui-monospace,monospace);font-size:12px;padding:6px 13px;border-radius:999px;border:1px solid color-mix(in srgb,var(--brand) 30%,var(--border));color:var(--brand);background:color-mix(in srgb,var(--brand) 7%,transparent);}
 @keyframes sceneIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* mini scene animations */
+.mv-term{width:min(370px,100%);border:1px solid var(--border);border-radius:11px;overflow:hidden;background:var(--card);text-align:left;font-family:var(--font-jbmono,ui-monospace,monospace);font-size:11.5px;}
+.mv-term-bar{display:flex;align-items:center;gap:5px;padding:7px 11px;border-bottom:1px solid var(--border);color:var(--subtle);}
+.mv-term-bar i{width:7px;height:7px;border-radius:50%;background:var(--border);}
+.mv-term-body{padding:11px 13px;display:flex;flex-direction:column;gap:6px;}
+.mv-tl{opacity:0;animation:wkLineIn .3s forwards;color:var(--muted-foreground);}
+.mv-err{color:var(--danger,#c0392b);}
+.mv-d1{animation-delay:.4s}.mv-d2{animation-delay:1.1s}
+.mv-x{animation:wkLineIn .3s 1.9s forwards,mvShake .5s 2.2s;}
+@keyframes mvShake{0%,100%{transform:none}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.mv-seal{position:relative;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;padding:16px 20px;border:1.5px solid color-mix(in srgb,var(--brand) 40%,var(--border));border-radius:14px;background:color-mix(in srgb,var(--brand) 6%,var(--card));animation:mvGlow 2.4s ease-in-out infinite;}
+@keyframes mvGlow{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--brand) 8%,transparent)}}
+.mv-chip{padding:7px 13px;border-radius:8px;background:var(--card);border:1px solid var(--border);font-family:var(--font-jbmono,ui-monospace,monospace);font-size:12px;color:var(--foreground);animation:mvSlide .5s .1s both;}
+.mv-lock{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:var(--brand);color:var(--brand-foreground);animation:mvPop .5s .5s both;}
+.mv-net{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-jbmono,ui-monospace,monospace);font-size:11px;color:var(--muted-foreground);animation:mvFade .5s .9s both;}
+@keyframes mvSlide{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes mvPop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+@keyframes mvFade{from{opacity:0}to{opacity:1}}
+.mv-match{display:flex;align-items:center;gap:12px;font-family:var(--font-jbmono,ui-monospace,monospace);font-size:11px;flex-wrap:wrap;justify-content:center;}
+.mv-run{padding:10px 14px;border:1px solid color-mix(in srgb,var(--success) 40%,var(--border));border-radius:10px;background:var(--card);text-align:center;color:var(--muted-foreground);animation:mvPop .45s both;}
+.mv-run b{display:block;color:var(--foreground);font-size:13px;margin-top:3px;}
+.mv-d2b{animation-delay:.45s}
+.mv-eq{font-size:22px;color:var(--success);animation:mvPop .4s .85s both;}
+.mv-ok{display:flex;width:30px;height:30px;border-radius:50%;background:var(--success);color:#fff;align-items:center;justify-content:center;animation:mvPop .45s 1.15s both;}
+.mv-stampbox{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px 0 2px;}
+.mv-seal2{display:flex;width:58px;height:58px;border-radius:50%;background:var(--success);color:#fff;align-items:center;justify-content:center;box-shadow:0 0 0 5px color-mix(in srgb,var(--success) 16%,transparent);animation:mvPress .7s .3s both;}
+@keyframes mvPress{0%{opacity:0;transform:scale(1.9) translateY(-18px)}60%{opacity:1;transform:scale(.9) translateY(2px)}100%{transform:scale(1) translateY(0)}}
+.mv-ripple{position:absolute;top:6px;left:50%;width:58px;height:58px;margin-left:-29px;border-radius:50%;border:2px solid color-mix(in srgb,var(--success) 55%,transparent);opacity:0;animation:wkRing .85s 1s forwards;}
+.mv-recline{font-family:var(--font-jbmono,ui-monospace,monospace);font-size:11px;color:var(--muted-foreground);animation:mvFade .5s 1.2s both;}
+.mv-who{display:flex;gap:11px;flex-wrap:wrap;justify-content:center;}
+.mv-wc{display:flex;flex-direction:column;align-items:center;gap:8px;width:104px;padding:15px 8px;border:1px solid var(--border);border-radius:13px;background:var(--card);color:var(--muted-foreground);font-size:12px;animation:mvPop .5s both;}
+.mv-wc svg{color:var(--brand);}
+.mv-w1{animation-delay:.15s}.mv-w2{animation-delay:.4s}.mv-w3{animation-delay:.65s}
 
 .wk-panel{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;background:var(--card);transition:box-shadow .5s,border-color .5s;text-align:left;}
 .wk-panel--sealed{border-color:color-mix(in srgb,var(--brand) 45%,var(--border));box-shadow:0 0 0 1px color-mix(in srgb,var(--brand) 22%,transparent),0 10px 30px -18px color-mix(in srgb,var(--brand) 60%,transparent);}
