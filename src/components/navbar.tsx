@@ -11,6 +11,7 @@ import { buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
+  { href: "/demo", label: "See it work" },
   { href: "/browse", label: "Browse methods" },
   { href: "/reproduce", label: "Reproduce a paper" },
   { href: "/preflight", label: "Preflight" },
