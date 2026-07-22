@@ -67,7 +67,7 @@ const SCENES: Scene[] = [
     chips: ["AI labs", "Journals", "Research teams"],
   },
 ];
-const DUR = [4200, 4400, 4600, 4400, 4200]; // per narrative scene (ms)
+const DUR = [6000, 6400, 6800, 6400, 6200]; // per narrative scene (ms) — paced for reading
 const FINALE = SCENES.length;
 
 /* ---------- the machine (real values) ---------- */
@@ -122,14 +122,14 @@ export function ProductWalkthrough() {
     setHashShown(0);
     let t = 0;
     const at = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, (t += ms)));
-    CODE.forEach((_, i) => at(150, () => setCodeShown(i + 1)));
-    at(480, () => setMStage(2));
-    at(1150, () => setMStage(3));
-    OUT.forEach((_, i) => at(300, () => setOutShown(i + 1)));
-    at(340, () => setMStage(4));
-    CHECKS.forEach((_, i) => at(280, () => setChecks(i + 1)));
-    at(400, () => setMStage(5));
-    for (let i = 1; i <= HASH.length; i++) at(8, () => setHashShown(i));
+    CODE.forEach((_, i) => at(210, () => setCodeShown(i + 1)));
+    at(650, () => setMStage(2));
+    at(1350, () => setMStage(3));
+    OUT.forEach((_, i) => at(420, () => setOutShown(i + 1)));
+    at(520, () => setMStage(4));
+    CHECKS.forEach((_, i) => at(420, () => setChecks(i + 1)));
+    at(560, () => setMStage(5));
+    for (let i = 1; i <= HASH.length; i++) at(11, () => setHashShown(i));
   }, []);
 
   const freezeMachineFinal = useCallback(() => {
@@ -238,7 +238,7 @@ export function ProductWalkthrough() {
                   i === scene && "reel-fill--active",
                   i === scene && paused && "reel-fill--paused",
                 )}
-                style={i === scene ? { animationDuration: `${i === FINALE ? 9000 : DUR[i]}ms` } : undefined}
+                style={i === scene ? { animationDuration: `${i === FINALE ? 10500 : DUR[i]}ms` } : undefined}
                 key={`${i}-${scene}`}
               />
             </div>
