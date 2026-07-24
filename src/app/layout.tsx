@@ -12,6 +12,7 @@ import { ThemeProvider, themeScript } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { BackToTop } from "@/components/back-to-top";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,6 +55,7 @@ export const metadata: Metadata = {
   },
   description: DESCRIPTION,
   applicationName: "Codon",
+  manifest: "/manifest.webmanifest",
   keywords: [
     "reproducibility",
     "computational biology",
@@ -97,6 +99,7 @@ export default function RootLayout({
           <Footer />
           <BackToTop />
         </ThemeProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
