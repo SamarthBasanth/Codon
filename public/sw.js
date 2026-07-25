@@ -1,30 +1,48 @@
 /*
- * Codon service worker — conservative offline support.
+ * Codon service worker — offline support tuned for the /demo experience.
  *
- * Design goals: make the site (especially /demo, which runs Pyodide fully
- * client-side) usable after a first visit even on a flaky/absent connection,
- * WITHOUT ever breaking auth, dynamic data, or fresh deploys.
+ * Goal: /demo (which runs Pyodide fully client-side) works offline reliably,
+ * WITHOUT breaking auth, dynamic data, or fresh deploys.
  *
  * Strategy:
- *  - Non-GET requests: never intercepted (sign-in, uploads, writes stay live).
- *  - /api/* and /auth*: never cached (always network — no stale/dynamic data).
- *  - Pyodide CDN (versioned, immutable): cache-first → /demo runs offline.
- *  - Next immutable static assets + media: cache-first.
- *  - Navigations (HTML): network-first, falling back to cache then /offline —
- *    so new deploys and personalized pages always try the network first.
+ *  - On install: precache the app shell AND the Pyodide runtime core, so the
+ *    demo can run offline after a single visit — even if it wasn't run online.
+ *  - Non-GET, /api/*, /auth*: never intercepted/cached (auth + writes stay live).
+ *  - Pyodide CDN (versioned, immutable): cache-first.
+ *  - Next immutable static + media: cache-first.
+ *  - Navigations (HTML): network-first → cache → /offline (deploys stay fresh).
  */
-const VERSION = "codon-sw-v1";
+const VERSION = "codon-sw-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const PYODIDE_CACHE = `${VERSION}-pyodide`;
-const PRECACHE = ["/offline", "/demo"];
+
+const SHELL = ["/", "/demo", "/offline", "/browse"];
+
+// Pyodide 0.26.4 runtime core — the files a stdlib-only method needs to run.
+// Precaching these (~a few MB, one time) is a deliberate trade for a demo that
+// must work with no connection.
+const PYODIDE_BASE = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
+const PYODIDE_CORE = [
+  "pyodide.js",
+  "pyodide.asm.js",
+  "pyodide.asm.wasm",
+  "python_stdlib.zip",
+  "pyodide-lock.json",
+].map((f) => PYODIDE_BASE + f);
+
+// Cache each URL independently so one failure never aborts the whole precache.
+async function precache(cacheName, urls, request) {
+  const cache = await caches.open(cacheName);
+  await Promise.allSettled(urls.map((u) => cache.add(request ? new Request(u, request) : u)));
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(STATIC_CACHE)
-      .then((cache) => cache.addAll(PRECACHE))
-      .catch(() => {})
-      .then(() => self.skipWaiting()),
+    (async () => {
+      await precache(STATIC_CACHE, SHELL);
+      await precache(PYODIDE_CACHE, PYODIDE_CORE, { mode: "cors", credentials: "omit" });
+      await self.skipWaiting();
+    })(),
   );
 });
 
@@ -45,7 +63,7 @@ async function cacheFirst(request, cacheName) {
     const res = await fetch(request);
     if (res && (res.ok || res.type === "opaque")) cache.put(request, res.clone());
     return res;
-  } catch (err) {
+  } catch {
     return hit || Response.error();
   }
 }
@@ -56,7 +74,7 @@ async function networkFirst(request) {
     const res = await fetch(request);
     if (res && res.ok) cache.put(request, res.clone());
     return res;
-  } catch (err) {
+  } catch {
     const cached = await cache.match(request);
     if (cached) return cached;
     const offline = await cache.match("/offline");
@@ -70,7 +88,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
 
-  // Pyodide runtime + packages (versioned, immutable) → cache-first, enables offline /demo.
+  // Pyodide runtime + packages (versioned, immutable) → cache-first.
   if (url.hostname === "cdn.jsdelivr.net" && url.pathname.includes("/pyodide/")) {
     event.respondWith(cacheFirst(req, PYODIDE_CACHE));
     return;
@@ -95,4 +113,9 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirst(req));
     return;
   }
+});
+
+// Allow the page to trigger an immediate activation of an updated SW.
+self.addEventListener("message", (event) => {
+  if (event.data === "skip-waiting") self.skipWaiting();
 });
