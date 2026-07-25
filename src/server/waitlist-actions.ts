@@ -8,6 +8,8 @@ export interface WaitlistInput {
   role?: string;
   organization?: string;
   useCase?: string;
+  /** Tags the signup so records stay separable, e.g. "preflight" or "pricing:Lab / Team". */
+  source?: string;
 }
 
 export interface WaitlistResult {
@@ -35,19 +37,31 @@ export async function joinWaitlist(input: WaitlistInput): Promise<WaitlistResult
     return { ok: false, error: "unconfigured" };
   }
   try {
-    const { error } = await supabaseAdmin()
-      .from("preflight_waitlist")
-      .insert({
-        email,
-        name: input.name?.trim() || null,
-        role: input.role?.trim() || null,
-        organization: input.organization?.trim() || null,
-        use_case: input.useCase?.trim() || null,
-        source: "preflight",
-      });
+    const source = input.source?.trim() || "preflight";
+    const row = {
+      email,
+      name: input.name?.trim() || null,
+      role: input.role?.trim() || null,
+      organization: input.organization?.trim() || null,
+      use_case: input.useCase?.trim() || null,
+      source,
+    };
+    const { error } = await supabaseAdmin().from("preflight_waitlist").insert(row);
     if (error) {
-      // 23505 = unique_violation → already on the list; treat as success.
-      if (error.code === "23505") return { ok: true };
+      // 23505 = unique_violation → already on the list. Merge the latest interest
+      // so the record stays useful (e.g. they later ask about a paid plan).
+      if (error.code === "23505") {
+        await supabaseAdmin()
+          .from("preflight_waitlist")
+          .update({
+            source,
+            ...(row.use_case ? { use_case: row.use_case } : {}),
+            ...(row.organization ? { organization: row.organization } : {}),
+            ...(row.role ? { role: row.role } : {}),
+          })
+          .eq("email", email);
+        return { ok: true };
+      }
       return { ok: false, error: "storage" };
     }
     return { ok: true };
